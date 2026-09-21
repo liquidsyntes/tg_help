@@ -1,7 +1,11 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Optional, Inject } from '@nestjs/common';
 import { Subscription } from 'rxjs';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { StructuredLoggerService } from '../../infrastructure/logger/structured-logger.service';
+import {
+  ITelegramPublisher,
+  TELEGRAM_PUBLISHER,
+} from '../../infrastructure/telegram-api/interfaces/telegram-publisher.interface';
 import { DomainEventBus } from './domain-event.bus';
 import {
   DomainEventType,
@@ -34,6 +38,9 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     private readonly prisma: PrismaService,
     private readonly logger: StructuredLoggerService,
     private readonly eventBus: DomainEventBus,
+    @Optional()
+    @Inject(TELEGRAM_PUBLISHER)
+    private readonly telegramPublisher?: ITelegramPublisher,
   ) {}
 
   onModuleInit(): void {
@@ -286,6 +293,39 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
       },
       'NotificationService',
     );
+
+    if (entry.recipientTelegramId && this.telegramPublisher) {
+      void this.sendTelegramMessageSafely(
+        entry.recipientTelegramId,
+        entry.message,
+        entry.postId,
+        entry.eventType,
+      );
+    }
+  }
+
+  private async sendTelegramMessageSafely(
+    recipientTelegramId: string,
+    message: string,
+    postId: string,
+    eventType: string,
+  ): Promise<void> {
+    try {
+      await this.telegramPublisher?.sendMessage(recipientTelegramId, message, {
+        parseMode: 'HTML',
+      });
+    } catch (err: unknown) {
+      this.logger.warn(
+        {
+          event: 'telegram_notification_delivery_failed',
+          recipientTelegramId,
+          eventType,
+          postId,
+          error: err instanceof Error ? err.message : String(err),
+        },
+        'NotificationService',
+      );
+    }
   }
 
   private logNotificationFailure(handlerName: string, error: unknown): void {

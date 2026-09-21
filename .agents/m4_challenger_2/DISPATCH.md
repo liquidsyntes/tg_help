@@ -30,3 +30,7 @@ Empirically and adversarially test Partial Publication Resume, Error Backoff & S
 
 Write your report to c:/TgHelp/.agents/m4_challenger_2/report.md and handoff to c:/TgHelp/.agents/m4_challenger_2/handoff.md.
 Use send_message to notify parent orchestrator with your verdict.
+
+## 2026-09-21T18:58:32Z
+
+The server has restarted and quota has reset. Please resume your stress-testing of Milestone 4 partial resume and scheduling per your initial prompt.

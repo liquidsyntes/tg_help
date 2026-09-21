@@ -92,7 +92,7 @@ Every feature identified during the Survey Phase is assigned to an implementatio
 | M1 | Foundation, Database & Infra | NestJS setup, Prisma 10 models & initial migration, Redis & BullMQ config, Docker Compose, Env validation, Health endpoints | none | DONE |
 | M2 | Domain Models, RBAC & State Machine | User/Channel services, RBAC, Post State Machine with OCC versioning, Audit Logging, Reviews, Notifications | M1 | DONE |
 | M3 | Templates, Canonical Rendering & Media | Post templates, Dynamic schema validation, HTML Sanitizer, Canonical TelegramRenderer, Media handling | M2 | DONE |
-| M4 | Publishing Engine & BullMQ Idempotency | BullMQ Worker, TelegramPublisher abstraction, Idempotency key, Retries & Exponential backoff, Partial publish resume | M3 | PLANNED |
+| M4 | Publishing Engine & BullMQ Idempotency | BullMQ Worker, TelegramPublisher abstraction, Idempotency key, Retries & Exponential backoff, Partial publish resume | M3 | DONE |
 | M5 | Telegram Transport & Interactive Wizard UI | grammY bot setup, Auth middleware, Step-by-step wizard with PostgreSQL autosave, Preview & Review cards | M4 | PLANNED |
 | M6 | E2E Testing & Adversarial Hardening | E2E test suite (Tiers 1-4: 100% pass) + Adversarial Tier 5 coverage hardening | M5 | PLANNED |
 

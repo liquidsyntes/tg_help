@@ -66,4 +66,19 @@ Gate Result: **FAIL (m3_challenger_1_r2 REQUEST_CHANGES: HtmlSplitter closingSuf
 
 Gate Result: **PASS**
 
+---
+
+## Gate — Milestone 4 (Publishing Engine & BullMQ Idempotency) — Iteration 1
+| Agent | Role | Verdict | Source | Notes |
+|-------|------|---------|--------|-------|
+| m4_worker_1 | teamwork_preview_worker | DONE | handoff.md | 341 unit + 34 E2E tests pass, build clean |
+| m4_reviewer_1 | teamwork_preview_reviewer | APPROVE | handoff.md | Idempotency key, P2002 collision handling, preflight, BullMQ worker verified |
+| m4_reviewer_2 | teamwork_preview_reviewer | APPROVE | handoff.md | ITelegramPublisher abstraction, error classifier, Kyiv scheduling verified |
+| m4_challenger_1 | teamwork_preview_challenger | APPROVE | handoff.md | 100 simultaneous requests idempotent (1 DB row, 1 queue job), P2002 race recovery verified |
+| m4_challenger_2 | teamwork_preview_challenger | APPROVE | handoff.md | Partial publication resume verified (no duplicate Telegram posts), 429 backoff verified |
+| m4_auditor_1 | teamwork_preview_auditor | CLEAN | handoff.md | Authentic domain & infrastructure implementation, zero facades/tautologies |
+
+Gate Result: **PASS**
+
+
 

@@ -1033,7 +1033,8 @@ describe('Milestone 2 Empirical Adversarial Stress Suite (m2_challenger_1)', () 
         const mockAudit: any = { record: jest.fn() };
         const channelsService = new ChannelsService(mockPrisma, mockAudit);
 
-        const date = await channelsService.parseAndValidateDate('21.09.2026 18:30', 'chan-kyiv');
+        const futureYear = new Date().getFullYear() + 1;
+        const date = await channelsService.parseAndValidateDate(`21.09.${futureYear} 18:30`, 'chan-kyiv');
         expect(date).toBeInstanceOf(Date);
         expect(mockPrisma.channel.findUnique).toHaveBeenCalledWith({ where: { id: 'chan-kyiv' } });
       });
@@ -1045,8 +1046,9 @@ describe('Milestone 2 Empirical Adversarial Stress Suite (m2_challenger_1)', () 
         const mockAudit: any = { record: jest.fn() };
         const channelsService = new ChannelsService(mockPrisma, mockAudit);
 
+        const futureYear = new Date().getFullYear() + 1;
         await expect(
-          channelsService.parseAndValidateDate('21.09.2026 18:30', 'missing-chan'),
+          channelsService.parseAndValidateDate(`21.09.${futureYear} 18:30`, 'missing-chan'),
         ).rejects.toThrow(ChannelNotFoundException);
       });
     });

@@ -18,6 +18,7 @@ import { MediaModule } from './modules/media/media.module';
 import { TelegramApiModule } from './infrastructure/telegram-api/telegram-api.module';
 import { PublishingModule } from './modules/publishing/publishing.module';
 import { SchedulingModule } from './modules/scheduling/scheduling.module';
+import { TelegramModule } from './modules/telegram/telegram.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { SchedulingModule } from './modules/scheduling/scheduling.module';
     TelegramApiModule,
     PublishingModule,
     SchedulingModule,
+    TelegramModule,
   ],
 })
 export class AppModule {}

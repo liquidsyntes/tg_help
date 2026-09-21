@@ -40,17 +40,26 @@ Review Milestone 4 implementation focusing on Telegram API Abstraction and Sched
 - `c:/TgHelp/.agents/m4_reviewer_2/handoff.md` — 5-component handoff report
 
 ## Review Checklist
-- **Items reviewed**: Initializing
-- **Verdict**: pending
-- **Unverified claims**: All claims from m4_worker_1 need independent verification
+- **Items reviewed**:
+  - `src/infrastructure/telegram-api/` (`ITelegramPublisher`, `TelegramPublisherService`, `TelegramErrorClassifier`, `TelegramApiModule`)
+  - `src/modules/scheduling/` (`SchedulingService`, `SchedulePostDto`, `CancelScheduleDto`, `SchedulingModule`)
+  - `src/modules/publishing/` (`PublishingPreflightService`, `PublishingService`, `PublishingProcessor`, `PublishingModule`)
+  - `tests/mocks/mock-telegram-publisher.ts`
+  - `tests/unit/telegram-publisher.spec.ts`
+  - `tests/unit/scheduling.spec.ts`
+  - `tests/unit/publishing.spec.ts`
+  - All unit test suites (18 suites, 341 tests)
+  - All E2E test suites (22 suites, 34 tests across 4 tiers)
+- **Verdict**: APPROVE
+- **Unverified claims**: None (all verified via compilation, unit tests, and E2E tests)
 
 ## Attack Surface
-- **Hypotheses tested**: None yet
-- **Vulnerabilities found**: None yet
-- **Untested angles**:
-  - Timezone parsing (Luxon vs native Date, invalid timezone formats, edge of daylight saving time)
-  - OCC version mismatch during schedulePost
-  - Concurrent cancellation vs publishing
-  - Polymorphic chatId handling (string vs bigint vs numbers)
-  - Error classification of rare Telegram Bot API error codes / network timeouts
-  - Backwards compatibility of MockTelegramPublisher in existing tests
+- **Hypotheses tested**:
+  - Polymorphic `chatId: string | bigint` negative channel IDs: verified safe conversion to string without 32-bit truncation.
+  - Luxon timezone conversions across DST boundaries in `Europe/Kyiv`: verified valid UTC instant generation.
+  - Race condition between BullMQ delayed job fire and `cancelSchedule`: verified dual defense (DB job CANCELLED check + stage 2 preflight check).
+  - Stale `expectedVersion` in `schedulePost`: verified OCC enforcement throwing `PostConflictException`.
+  - Rate limit extraction regex and fallback: verified correct delay parsing.
+- **Vulnerabilities found**: None.
+- **Untested angles**: None within milestone scope.
+

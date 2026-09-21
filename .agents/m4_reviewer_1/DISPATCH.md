@@ -33,3 +33,8 @@ Review Milestone 4 implementation focusing on PublishingService and PublishingPr
 Write your review to c:/TgHelp/.agents/m4_reviewer_1/report.md and handoff to c:/TgHelp/.agents/m4_reviewer_1/handoff.md.
 Use send_message to notify parent orchestrator with your verdict.
 </USER_REQUEST>
+
+## 2026-09-21T18:58:23Z
+
+The server has restarted and quota has reset. Please resume your review of Milestone 4.
+
