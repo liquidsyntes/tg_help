@@ -1,0 +1,110 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: tghelp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tghelp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tghelp_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-tghelp}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-tghelp} -d $${POSTGRES_DB:-tghelp}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - tghelp-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: tghelp-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - tghelp-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: tghelp-app
+    restart: unless-stopped
+    command: ["node", "dist/main.js"]
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-tghelp}:${POSTGRES_PASSWORD:-tghelp_pass}@postgres:5432/${POSTGRES_DB:-tghelp}?schema=public
+      REDIS_URL: redis://redis:6379
+      BOT_TOKEN: ${BOT_TOKEN}
+      DEFAULT_TIMEZONE: ${DEFAULT_TIMEZONE:-Europe/Kyiv}
+      TELEGRAM_MODE: ${TELEGRAM_MODE:-polling}
+      WEBHOOK_DOMAIN: ${WEBHOOK_DOMAIN:-}
+      WEBHOOK_PATH: ${WEBHOOK_PATH:-/telegram/webhook}
+      WEBHOOK_SECRET_TOKEN: ${WEBHOOK_SECRET_TOKEN:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "${PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - tghelp-network
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: tghelp-worker
+    restart: unless-stopped
+    command: ["node", "dist/worker.main.js"]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-tghelp}:${POSTGRES_PASSWORD:-tghelp_pass}@postgres:5432/${POSTGRES_DB:-tghelp}?schema=public
+      REDIS_URL: redis://redis:6379
+      BOT_TOKEN: ${BOT_TOKEN}
+      DEFAULT_TIMEZONE: ${DEFAULT_TIMEZONE:-Europe/Kyiv}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tghelp-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  tghelp-network:
+    driver: bridge

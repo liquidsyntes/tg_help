@@ -1,0 +1,36 @@
+# Node dependencies
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Testing & Coverage
+coverage/
+*.lcov
+.nyc_output/
+
+# Prisma
+/prisma/*.db
+/prisma/*.db-journal
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Temporary files
+tmp/
+temp/

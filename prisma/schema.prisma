@@ -1,0 +1,274 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum SystemRole {
+  SUPER_ADMIN
+  USER
+}
+
+enum ChannelRole {
+  EDITOR
+  AUTHOR
+  VIEWER
+}
+
+enum PostStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  NEEDS_REVISION
+  REJECTED
+  SCHEDULED
+  PUBLISHING
+  PUBLISHED
+  PUBLISH_FAILED
+  CANCELLED
+}
+
+enum MediaType {
+  PHOTO
+  VIDEO
+  DOCUMENT
+  ANIMATION
+}
+
+enum ReviewAction {
+  APPROVE
+  REQUEST_REVISION
+  REJECT
+}
+
+enum PublicationJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// ---------------------------------------------------------------------------
+// Models
+// ---------------------------------------------------------------------------
+
+/// System user authenticated exclusively via Telegram ID
+model User {
+  id         String     @id @default(uuid())
+  telegramId BigInt     @unique @map("telegram_id")
+  username   String?    @map("username")
+  firstName  String?    @map("first_name")
+  lastName   String?    @map("last_name")
+  systemRole SystemRole @default(USER) @map("system_role")
+  isActive   Boolean    @default(true) @map("is_active")
+  createdAt  DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+
+  channelMembers ChannelMember[]
+  authoredPosts  Post[]          @relation("PostAuthor")
+  reviews        PostReview[]    @relation("PostReviewer")
+  postVersions   PostVersion[]   @relation("VersionAuthor")
+  auditLogs      AuditLog[]      @relation("AuditActor")
+
+  @@map("users")
+}
+
+/// Target Telegram channel configuration
+model Channel {
+  id              String   @id @default(uuid())
+  telegramChatId  String   @unique @map("telegram_chat_id")
+  title           String   @map("title")
+  username        String?  @map("username")
+  timezone        String   @default("Europe/Kyiv") @map("timezone")
+  publicationMode String   @default("DIRECT") @map("publication_mode")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  members         ChannelMember[]
+  posts           Post[]
+  publicationJobs PublicationJob[]
+
+  @@map("channels")
+}
+
+/// Channel-level role and permission assignment
+model ChannelMember {
+  id         String      @id @default(uuid())
+  channelId  String      @map("channel_id")
+  userId     String      @map("user_id")
+  role       ChannelRole @default(AUTHOR) @map("role")
+  canPublish Boolean     @default(false) @map("can_publish")
+  canApprove Boolean     @default(false) @map("can_approve")
+  createdAt  DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, userId])
+  @@index([userId])
+  @@index([channelId])
+  @@map("channel_members")
+}
+
+/// Dynamic post template definition and rendering configuration
+model PostTemplate {
+  id                  String   @id @default(uuid())
+  key                 String   @unique @map("key")
+  name                String   @map("name")
+  description         String?  @map("description")
+  schemaJson          Json     @map("schema_json")
+  renderConfig        Json     @map("render_config")
+  supportedMediaTypes String[] @map("supported_media_types")
+  version             Int      @default(1) @map("version")
+  isActive            Boolean  @default(true) @map("is_active")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  posts Post[]
+
+  @@map("post_templates")
+}
+
+/// Editorial post entity with Optimistic Concurrency Control
+model Post {
+  id              String     @id @default(uuid())
+  channelId       String     @map("channel_id")
+  authorId        String     @map("author_id")
+  templateId      String     @map("template_id")
+  templateVersion Int        @default(1) @map("template_version")
+  status          PostStatus @default(DRAFT) @map("status")
+  version         Int        @default(1) @map("version")
+  contentJson     Json       @default("{}") @map("content_json")
+  metadataJson    Json       @default("{}") @map("metadata_json")
+  scheduledAt     DateTime?  @map("scheduled_at") @db.Timestamptz
+  publishedAt     DateTime?  @map("published_at") @db.Timestamptz
+  deletedAt       DateTime?  @map("deleted_at") @db.Timestamptz
+  createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+
+  channel         Channel          @relation(fields: [channelId], references: [id], onDelete: Restrict)
+  author          User             @relation("PostAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  template        PostTemplate     @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  media           PostMedia[]
+  reviews         PostReview[]
+  versions        PostVersion[]
+  publicationJobs PublicationJob[]
+
+  @@index([status])
+  @@index([authorId])
+  @@index([channelId])
+  @@index([scheduledAt])
+  @@index([deletedAt])
+  @@map("posts")
+}
+
+/// Attached media files referencing Telegram file identifiers
+model PostMedia {
+  id                   String    @id @default(uuid())
+  postId               String    @map("post_id")
+  telegramFileId       String    @map("telegram_file_id")
+  telegramFileUniqueId String    @map("telegram_file_unique_id")
+  mediaType            MediaType @map("media_type")
+  fileName             String?   @map("file_name")
+  mimeType             String?   @map("mime_type")
+  fileSize             BigInt?   @map("file_size")
+  caption              String?   @map("caption")
+  sortOrder            Int       @default(0) @map("sort_order")
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([telegramFileUniqueId])
+  @@map("post_media")
+}
+
+/// Editorial review history and feedback notes
+model PostReview {
+  id         String       @id @default(uuid())
+  postId     String       @map("post_id")
+  reviewerId String       @map("reviewer_id")
+  action     ReviewAction @map("action")
+  comment    String?      @map("comment")
+  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz
+
+  post     Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reviewer User @relation("PostReviewer", fields: [reviewerId], references: [id], onDelete: Restrict)
+
+  @@index([postId])
+  @@index([reviewerId])
+  @@map("post_reviews")
+}
+
+/// Historical version snapshots for editorial rollbacks and auditing
+model PostVersion {
+  id           String   @id @default(uuid())
+  postId       String   @map("post_id")
+  version      Int      @map("version")
+  contentJson  Json     @map("content_json")
+  metadataJson Json?    @map("metadata_json")
+  renderedText String?  @map("rendered_text")
+  changedById  String   @map("changed_by")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  post      Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  changedBy User @relation("VersionAuthor", fields: [changedById], references: [id], onDelete: Restrict)
+
+  @@unique([postId, version])
+  @@index([postId])
+  @@map("post_versions")
+}
+
+/// Queue-backed publication task with database-enforced idempotency
+model PublicationJob {
+  id                 String               @id @default(uuid())
+  postId             String               @map("post_id")
+  postVersion        Int                  @map("post_version")
+  idempotencyKey     String               @unique @map("idempotency_key")
+  channelId          String               @map("channel_id")
+  status             PublicationJobStatus @default(PENDING) @map("status")
+  attempts           Int                  @default(0) @map("attempts")
+  maxAttempts        Int                  @default(3) @map("max_attempts")
+  scheduledFor       DateTime?            @map("scheduled_for") @db.Timestamptz
+  telegramMessageIds Json                 @default("[]") @map("telegram_message_ids")
+  errorMessage       String?              @map("error_message")
+  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime             @updatedAt @map("updated_at") @db.Timestamptz
+
+  post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Restrict)
+
+  @@index([status])
+  @@index([scheduledFor])
+  @@index([postId])
+  @@index([channelId])
+  @@map("publication_jobs")
+}
+
+/// Append-only audit record for all state transitions and system modifications
+model AuditLog {
+  id         String   @id @default(uuid())
+  action     String   @map("action")
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  actorId    String?  @map("actor_id")
+  payload    Json     @default("{}") @map("payload")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
