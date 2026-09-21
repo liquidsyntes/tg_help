@@ -81,21 +81,35 @@ Lead end-to-end implementation of Telegram Content Publisher Bot MVP per R1, R2,
 | m3_explorer_2 | teamwork_preview_explorer | M3 Renderer, Sanitizer & Splitting | completed | a4a5eeea-b8c4-4599-9726-0d2768ec525b |
 | m3_explorer_3 | teamwork_preview_explorer | M3 Media Management & File ID | completed | a7a0b159-0a3f-4529-8388-dec5db9ca911 |
 | m3_worker_1 | teamwork_preview_worker | M3 Implementation Worker | completed | a89ef61b-e5ef-48c0-8b4b-294fb0b81a9b |
-| m3_reviewer_1 | teamwork_preview_reviewer | M3 Reviewer 1 (Templates & Dynamic Schema) | in-progress | f503838b-16ef-4b97-8ea0-6bd25b77fe57 |
-| m3_reviewer_2 | teamwork_preview_reviewer | M3 Reviewer 2 (Rendering & Media Architecture) | in-progress | 3ae71fe2-9abb-4ef8-8af0-08005e334fb0 |
-| m3_challenger_1 | teamwork_preview_challenger | M3 Challenger 1 (HTML Sanitizer & Splitting Stress) | in-progress | 4138fd8d-49d8-4b1b-b4c1-ea507928ad6f |
-| m3_challenger_2 | teamwork_preview_challenger | M3 Challenger 2 (Media Invariants & Doc-as-Video) | in-progress | d6a37b3c-2214-41eb-8c87-fbed024e20d7 |
-| m3_auditor_1 | teamwork_preview_auditor | M3 Forensic Integrity Auditor | in-progress | 505c2e86-a170-4617-893b-330b49b1e29d |
+| m3_reviewer_1 | teamwork_preview_reviewer | M3 Reviewer 1 (Templates & Dynamic Schema) | completed | f503838b-16ef-4b97-8ea0-6bd25b77fe57 |
+| m3_reviewer_2 | teamwork_preview_reviewer | M3 Reviewer 2 (Rendering & Media Architecture) | completed | 3ae71fe2-9abb-4ef8-8af0-08005e334fb0 |
+| m3_challenger_1 | teamwork_preview_challenger | M3 Challenger 1 (HTML Sanitizer & Splitting Stress) | failed | 4138fd8d-49d8-4b1b-b4c1-ea507928ad6f |
+| m3_challenger_2 | teamwork_preview_challenger | M3 Challenger 2 (Media Invariants & Doc-as-Video) | failed | d6a37b3c-2214-41eb-8c87-fbed024e20d7 |
+| m3_auditor_1 | teamwork_preview_auditor | M3 Forensic Integrity Auditor | failed | 505c2e86-a170-4617-893b-330b49b1e29d |
+| m3_challenger_1_r2 | teamwork_preview_challenger | M3 Challenger 1 (Resumed Stress Test) | completed | 3c6b48ca-c902-415a-a58f-b4ffc426fe39 |
+| m3_challenger_2_r2 | teamwork_preview_challenger | M3 Challenger 2 (Resumed Invariants Test) | completed | 1d6c34e1-3aa1-4d36-9c29-c19ff413001c |
+| m3_worker_2 | teamwork_preview_worker | M3 Remediation Worker | completed | 3d9310c6-a310-4cb3-a747-db3a77af289f |
+| m3_challenger_3 | teamwork_preview_challenger | M3 Boundary Re-Challenger | completed | 030f10ba-58c0-4e4e-83e4-46c2cbabcadb |
+| m3_auditor_2 | teamwork_preview_auditor | M3 Forensic Integrity Re-Auditor | completed | c2a49440-19da-4e4c-a394-e07faadd5749 |
+| m4_explorer_1 | teamwork_preview_explorer | M4 Queue & BullMQ Worker Architecture | completed | c7dc890b-445b-4e1e-bebf-14d04473651e |
+| m4_explorer_2 | teamwork_preview_explorer | M4 TelegramPublisher Abstraction & Errors | completed | 09555a7e-e17c-4bc2-98ad-031cb377fc6f |
+| m4_explorer_3 | teamwork_preview_explorer | M4 Scheduling, Preflight & Partial Resume | completed | 47052771-60ba-47e1-87b0-1c3ffa5d470f |
+| m4_worker_1 | teamwork_preview_worker | M4 Publishing Engine & Worker Implementation | completed | 871d941a-1fce-4ff3-bbc1-fe7f1d75be50 |
+| m4_reviewer_1 | teamwork_preview_reviewer | M4 Reviewer 1 (Publishing & BullMQ) | in-progress | 565b460b-78e6-4770-a424-8fd757f4fab3 |
+| m4_reviewer_2 | teamwork_preview_reviewer | M4 Reviewer 2 (Telegram API & Scheduling) | in-progress | 0b01e0f7-d82f-4362-9c68-956faf3a59ff |
+| m4_challenger_1 | teamwork_preview_challenger | M4 Challenger 1 (Idempotency & Preflight Stress) | in-progress | 05b79eeb-1e25-4ec6-bae9-63cda5a69898 |
+| m4_challenger_2 | teamwork_preview_challenger | M4 Challenger 2 (Partial Resume & Scheduling Stress) | in-progress | fe15e058-1b4e-4e45-919a-16f475789a4e |
+| m4_auditor_1 | teamwork_preview_auditor | M4 Forensic Integrity Auditor | in-progress | 563f2aa8-9609-4a85-a6da-6f5bd4726228 |
 
 ## Succession Status
 - Succession required: no
-- Spawn count: 35 / 16
-- Pending subagents: m3_reviewer_1, m3_reviewer_2, m3_challenger_1, m3_challenger_2, m3_auditor_1
+- Spawn count: 50 / 16
+- Pending subagents: m4_reviewer_1, m4_reviewer_2, m4_challenger_1, m4_challenger_2, m4_auditor_1
 - Predecessor: none
 - Successor: not yet spawned
 
 ## Active Timers
-- Heartbeat cron: 6f35b072-3fac-43df-87fc-95e48993acc2/task-20
+- Heartbeat cron: 6f35b072-3fac-43df-87fc-95e48993acc2/task-835
 - Safety timer: covered by heartbeat cron
 - On succession: kill all timers before spawning successor
 - On context truncation: run `manage_task(Action="list")` — re-create if missing

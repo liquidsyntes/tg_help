@@ -15,13 +15,53 @@ export interface SendOptions {
   disableWebPagePreview?: boolean;
 }
 
+export interface SendMediaOptions {
+  caption?: string;
+  parseMode?: 'HTML';
+}
+
+export interface SendDocumentOptions extends SendMediaOptions {
+  fileName?: string;
+  mimeType?: string;
+}
+
+export interface OutgoingMediaGroupItem {
+  type: 'photo' | 'video' | 'document';
+  fileId: string;
+  caption?: string;
+}
+
+export interface OutgoingMessagePart {
+  partIndex?: number;
+  type: 'text' | 'photo' | 'video' | 'document' | 'animation' | 'media_group';
+  text?: string;
+  html?: string;
+  fileId?: string;
+  caption?: string;
+  fileName?: string;
+  mimeType?: string;
+  items?: OutgoingMediaGroupItem[];
+  disableWebPagePreview?: boolean;
+}
+
+export const TelegramErrorCategory = {
+  RATE_LIMITED: 'RATE_LIMITED',
+  RETRYABLE: 'RETRYABLE',
+  PERMANENT: 'PERMANENT',
+} as const;
+
+export type TelegramErrorCategory =
+  (typeof TelegramErrorCategory)[keyof typeof TelegramErrorCategory];
+
 export interface RecordedTelegramMessage {
   messageId: number;
   chatId: string;
-  type: 'text' | 'media_group';
+  type: 'text' | 'photo' | 'video' | 'document' | 'animation' | 'media_group';
   text?: string;
-  media?: OutgoingMedia[];
-  options?: SendOptions;
+  fileId?: string;
+  caption?: string;
+  media?: (OutgoingMedia | OutgoingMediaGroupItem)[];
+  options?: SendOptions | SendMediaOptions | SendDocumentOptions;
   sentAt: Date;
 }
 
@@ -34,7 +74,7 @@ export class TelegramApiError extends Error {
     message: string,
     statusCode: number,
     retryAfter?: number,
-    isPermanent: boolean = false,
+    isPermanent = false,
   ) {
     super(message);
     this.name = 'TelegramApiError';
@@ -43,6 +83,13 @@ export class TelegramApiError extends Error {
     this.isPermanent = isPermanent;
   }
 }
+
+export const TELEGRAM_LIMITS = {
+  MAX_MESSAGE_LENGTH: 4096,
+  MAX_CAPTION_LENGTH: 1024,
+  MIN_MEDIA_GROUP_SIZE: 2,
+  MAX_MEDIA_GROUP_SIZE: 10,
+} as const;
 
 export class MockTelegramPublisher {
   private currentMessageId = 1000;
@@ -55,31 +102,39 @@ export class MockTelegramPublisher {
   private rateLimitRetryAfter = 5;
   private permanentFailure: Error | null = null;
 
+  private normalizeChatId(chatId: string | bigint): string {
+    const s = typeof chatId === 'bigint' ? chatId.toString() : String(chatId).trim();
+    if (!s) {
+      throw new TelegramApiError('Bad Request: chat_id is empty', 400, undefined, true);
+    }
+    return s;
+  }
+
   /**
    * Simulates sendMediaGroup Telegram API call.
    * Enforces Telegram limits: media group size must be 2..10.
    */
-  async sendMediaGroup(chatId: string, media: OutgoingMedia[]): Promise<number[]> {
+  async sendMediaGroup(
+    chatId: string | bigint,
+    media: (OutgoingMedia | OutgoingMediaGroupItem)[],
+  ): Promise<number[]> {
     this.checkSimulatedFailures();
+    const targetChat = this.normalizeChatId(chatId);
 
-    if (!chatId || chatId.trim() === '') {
-      throw new TelegramApiError('Bad Request: chat_id is empty', 400, undefined, true);
-    }
-
-    if (!Array.isArray(media) || media.length < 2 || media.length > 10) {
+    if (!Array.isArray(media) || media.length < TELEGRAM_LIMITS.MIN_MEDIA_GROUP_SIZE || media.length > TELEGRAM_LIMITS.MAX_MEDIA_GROUP_SIZE) {
       throw new TelegramApiError(
-        `Bad Request: media group must contain between 2 and 10 items (got ${media?.length})`,
+        `Bad Request: media group must contain between ${TELEGRAM_LIMITS.MIN_MEDIA_GROUP_SIZE} and ${TELEGRAM_LIMITS.MAX_MEDIA_GROUP_SIZE} items (got ${media?.length})`,
         400,
         undefined,
         true,
       );
     }
 
-    // Verify captions do not exceed 1024 chars
+    // Verify captions do not exceed MAX_CAPTION_LENGTH
     for (const item of media) {
-      if (item.caption && item.caption.length > 1024) {
+      if (item.caption && item.caption.length > TELEGRAM_LIMITS.MAX_CAPTION_LENGTH) {
         throw new TelegramApiError(
-          `Bad Request: media caption exceeds 1024 characters (got ${item.caption.length})`,
+          `Bad Request: media caption exceeds ${TELEGRAM_LIMITS.MAX_CAPTION_LENGTH} characters (got ${item.caption.length})`,
           400,
           undefined,
           true,
@@ -95,7 +150,7 @@ export class MockTelegramPublisher {
 
     this.sentMessages.push({
       messageId: assignedIds[0],
-      chatId,
+      chatId: targetChat,
       type: 'media_group',
       media,
       sentAt: new Date(),
@@ -108,20 +163,21 @@ export class MockTelegramPublisher {
    * Simulates sendMessage Telegram API call.
    * Enforces Telegram limits: text length <= 4096.
    */
-  async sendMessage(chatId: string, text: string, options?: SendOptions): Promise<number> {
+  async sendMessage(
+    chatId: string | bigint,
+    text: string,
+    options?: SendOptions,
+  ): Promise<number> {
     this.checkSimulatedFailures();
-
-    if (!chatId || chatId.trim() === '') {
-      throw new TelegramApiError('Bad Request: chat_id is empty', 400, undefined, true);
-    }
+    const targetChat = this.normalizeChatId(chatId);
 
     if (!text || text.trim() === '') {
       throw new TelegramApiError('Bad Request: message text is empty', 400, undefined, true);
     }
 
-    if (text.length > 4096) {
+    if (text.length > TELEGRAM_LIMITS.MAX_MESSAGE_LENGTH) {
       throw new TelegramApiError(
-        `Bad Request: message text exceeds 4096 characters (got ${text.length})`,
+        `Bad Request: message text exceeds ${TELEGRAM_LIMITS.MAX_MESSAGE_LENGTH} characters (got ${text.length})`,
         400,
         undefined,
         true,
@@ -133,7 +189,7 @@ export class MockTelegramPublisher {
 
     this.sentMessages.push({
       messageId: msgId,
-      chatId,
+      chatId: targetChat,
       type: 'text',
       text,
       options,
@@ -143,18 +199,205 @@ export class MockTelegramPublisher {
     return msgId;
   }
 
+  async sendPhoto(
+    chatId: string | bigint,
+    photoFileId: string,
+    options?: SendMediaOptions,
+  ): Promise<number> {
+    this.checkSimulatedFailures();
+    const targetChat = this.normalizeChatId(chatId);
+    this.validateCaption(options?.caption);
+
+    this.currentMessageId += 1;
+    const msgId = this.currentMessageId;
+
+    this.sentMessages.push({
+      messageId: msgId,
+      chatId: targetChat,
+      type: 'photo',
+      fileId: photoFileId,
+      caption: options?.caption,
+      options,
+      sentAt: new Date(),
+    });
+
+    return msgId;
+  }
+
+  async sendVideo(
+    chatId: string | bigint,
+    videoFileId: string,
+    options?: SendMediaOptions,
+  ): Promise<number> {
+    this.checkSimulatedFailures();
+    const targetChat = this.normalizeChatId(chatId);
+    this.validateCaption(options?.caption);
+
+    this.currentMessageId += 1;
+    const msgId = this.currentMessageId;
+
+    this.sentMessages.push({
+      messageId: msgId,
+      chatId: targetChat,
+      type: 'video',
+      fileId: videoFileId,
+      caption: options?.caption,
+      options,
+      sentAt: new Date(),
+    });
+
+    return msgId;
+  }
+
+  async sendDocument(
+    chatId: string | bigint,
+    documentFileId: string,
+    options?: SendDocumentOptions,
+  ): Promise<number> {
+    this.checkSimulatedFailures();
+    const targetChat = this.normalizeChatId(chatId);
+    this.validateCaption(options?.caption);
+
+    this.currentMessageId += 1;
+    const msgId = this.currentMessageId;
+
+    this.sentMessages.push({
+      messageId: msgId,
+      chatId: targetChat,
+      type: 'document',
+      fileId: documentFileId,
+      caption: options?.caption,
+      options,
+      sentAt: new Date(),
+    });
+
+    return msgId;
+  }
+
+  async sendAnimation(
+    chatId: string | bigint,
+    animationFileId: string,
+    options?: SendMediaOptions,
+  ): Promise<number> {
+    this.checkSimulatedFailures();
+    const targetChat = this.normalizeChatId(chatId);
+    this.validateCaption(options?.caption);
+
+    this.currentMessageId += 1;
+    const msgId = this.currentMessageId;
+
+    this.sentMessages.push({
+      messageId: msgId,
+      chatId: targetChat,
+      type: 'animation',
+      fileId: animationFileId,
+      caption: options?.caption,
+      options,
+      sentAt: new Date(),
+    });
+
+    return msgId;
+  }
+
+  async publishOutgoingMessage(
+    chatId: string | bigint,
+    message: OutgoingMessagePart,
+  ): Promise<number[]> {
+    switch (message.type) {
+      case 'text': {
+        const textContent = message.html || message.text || '';
+        const id = await this.sendMessage(chatId, textContent, {
+          parseMode: 'HTML',
+          disableWebPagePreview: message.disableWebPagePreview,
+        });
+        return [id];
+      }
+      case 'photo': {
+        const id = await this.sendPhoto(chatId, message.fileId!, {
+          caption: message.caption,
+          parseMode: 'HTML',
+        });
+        return [id];
+      }
+      case 'video': {
+        const id = await this.sendVideo(chatId, message.fileId!, {
+          caption: message.caption,
+          parseMode: 'HTML',
+        });
+        return [id];
+      }
+      case 'document': {
+        const id = await this.sendDocument(chatId, message.fileId!, {
+          caption: message.caption,
+          fileName: message.fileName,
+          mimeType: message.mimeType,
+          parseMode: 'HTML',
+        });
+        return [id];
+      }
+      case 'animation': {
+        const id = await this.sendAnimation(chatId, message.fileId!, {
+          caption: message.caption,
+          parseMode: 'HTML',
+        });
+        return [id];
+      }
+      case 'media_group': {
+        const items = (message.items || []).map((i) => ({
+          type: i.type,
+          fileId: i.fileId,
+          caption: i.caption,
+        }));
+        return this.sendMediaGroup(chatId, items);
+      }
+      default:
+        throw new TelegramApiError(
+          `Unsupported message type: ${(message as { type: string }).type}`,
+          400,
+          undefined,
+          true,
+        );
+    }
+  }
+
+  categorizeError(error: unknown): TelegramErrorCategory {
+    if (error instanceof TelegramApiError) {
+      if (error.isPermanent) return TelegramErrorCategory.PERMANENT;
+      if (error.statusCode === 429) return TelegramErrorCategory.RATE_LIMITED;
+      if (error.statusCode >= 500 && error.statusCode < 600) return TelegramErrorCategory.RETRYABLE;
+    }
+    const msg = error instanceof Error ? error.message : String(error);
+    if (/429|too many requests|retry after/i.test(msg)) {
+      return TelegramErrorCategory.RATE_LIMITED;
+    }
+    if (/ECONNRESET|ETIMEDOUT|ENOTFOUND|ECONNREFUSED|connect timeout|network timeout|fetch failed|socket hang up/i.test(msg)) {
+      return TelegramErrorCategory.RETRYABLE;
+    }
+    return TelegramErrorCategory.PERMANENT;
+  }
+
   /**
    * Determines if an error is retryable (429 rate limit or 5xx server error).
    * Authoritative source: AGENTS.md §49, §50; PROJECT.md § Interface Contracts
    */
-  isRetryable(error: Error): boolean {
+  isRetryable(error: unknown): boolean {
     if (error instanceof TelegramApiError) {
       if (error.isPermanent) return false;
       if (error.statusCode === 429) return true;
       if (error.statusCode >= 500 && error.statusCode < 600) return true;
     }
-    // Network errors (ECONNRESET, ETIMEDOUT) are retryable
-    if (error.message.includes('ECONNRESET') || error.message.includes('ETIMEDOUT')) {
+    const msg = error instanceof Error ? error.message : String(error);
+    if (
+      msg.includes('ECONNRESET') ||
+      msg.includes('ETIMEDOUT') ||
+      msg.includes('ENOTFOUND') ||
+      msg.includes('ECONNREFUSED') ||
+      msg.includes('connect timeout') ||
+      msg.includes('network timeout') ||
+      msg.includes('fetch failed') ||
+      msg.includes('socket hang up') ||
+      /429|too many requests/i.test(msg)
+    ) {
       return true;
     }
     return false;
@@ -163,9 +406,15 @@ export class MockTelegramPublisher {
   /**
    * Extracts retry delay in seconds if specified (e.g. from 429 Retry-After).
    */
-  getRetryDelay(error: Error): number | null {
+  getRetryDelay(error: unknown): number | null {
     if (error instanceof TelegramApiError && error.retryAfter !== undefined) {
       return error.retryAfter;
+    }
+    const msg = error instanceof Error ? error.message : String(error);
+    const match = msg.match(/retry(?:_after| after)[:\s]+(\d+)/i);
+    if (match && match[1]) {
+      const sec = parseInt(match[1], 10);
+      return Number.isNaN(sec) ? null : sec;
     }
     return null;
   }
@@ -177,7 +426,7 @@ export class MockTelegramPublisher {
     this.transientFailureError = error || new TelegramApiError('Internal Server Error (Simulated 500)', 500);
   }
 
-  simulateRateLimit(count: number, retryAfterSeconds: number = 2): void {
+  simulateRateLimit(count: number, retryAfterSeconds = 2): void {
     this.rateLimitRemaining = count;
     this.rateLimitRetryAfter = retryAfterSeconds;
   }
@@ -207,6 +456,17 @@ export class MockTelegramPublisher {
   clear(): void {
     this.sentMessages = [];
     this.resetFailures();
+  }
+
+  private validateCaption(caption?: string): void {
+    if (caption && caption.length > TELEGRAM_LIMITS.MAX_CAPTION_LENGTH) {
+      throw new TelegramApiError(
+        `Bad Request: media caption exceeds ${TELEGRAM_LIMITS.MAX_CAPTION_LENGTH} characters (got ${caption.length})`,
+        400,
+        undefined,
+        true,
+      );
+    }
   }
 
   private checkSimulatedFailures(): void {

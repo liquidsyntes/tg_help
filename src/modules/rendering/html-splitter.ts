@@ -23,19 +23,59 @@ export class HtmlSplitter {
       return { part1: html || '' };
     }
 
-    // 1. Find optimal natural cut point <= maxLength
-    const cutPoint = this.findOptimalCutPoint(html, maxLength);
-
-    // 2. Track active open tags up to cutPoint
-    const activeTags = this.getActiveOpenTags(html.slice(0, cutPoint));
-
-    // 3. Close open tags at end of Part 1 (in reverse LIFO order)
-    const closingSuffix = activeTags
+    let safeLimit = maxLength;
+    let cutPoint = this.findOptimalCutPoint(html, safeLimit);
+    let activeTags = this.getActiveOpenTags(html.slice(0, cutPoint));
+    let closingSuffix = activeTags
       .slice()
       .reverse()
       .map((t) => `</${t.tagName}>`)
       .join('');
-    const part1 = html.slice(0, cutPoint).trimEnd() + closingSuffix;
+
+    // Tag-aware length budgeting:
+    // If cutPoint + closingSuffix.length > maxLength, reduce safeLimit by closing suffix length
+    // and iterate until part1 (including closingSuffix) strictly respects maxLength under all tag nesting depths.
+    let attempts = 0;
+    while (
+      html.slice(0, cutPoint).trimEnd().length + closingSuffix.length > maxLength &&
+      safeLimit > 0 &&
+      attempts < 20
+    ) {
+      attempts++;
+      safeLimit = maxLength - closingSuffix.length;
+      if (safeLimit <= 0) {
+        break;
+      }
+      cutPoint = this.findOptimalCutPoint(html, safeLimit);
+      activeTags = this.getActiveOpenTags(html.slice(0, cutPoint));
+      closingSuffix = activeTags
+        .slice()
+        .reverse()
+        .map((t) => `</${t.tagName}>`)
+        .join('');
+    }
+
+    let part1 = html.slice(0, cutPoint).trimEnd() + closingSuffix;
+
+    // Hard ceiling guarantee for pathological boundary conditions
+    if (part1.length > maxLength) {
+      if (closingSuffix.length < maxLength) {
+        cutPoint = Math.max(0, maxLength - closingSuffix.length);
+        activeTags = this.getActiveOpenTags(html.slice(0, cutPoint));
+        closingSuffix = activeTags
+          .slice()
+          .reverse()
+          .map((t) => `</${t.tagName}>`)
+          .join('');
+        part1 =
+          html.slice(0, Math.max(0, maxLength - closingSuffix.length)).trimEnd() +
+          closingSuffix;
+      } else {
+        part1 = html.slice(0, maxLength);
+        cutPoint = maxLength;
+        activeTags = [];
+      }
+    }
 
     // 4. Reopen active tags at start of Part 2
     const openingPrefix = activeTags.map((t) => t.fullOpenTag).join('');
@@ -81,6 +121,27 @@ export class HtmlSplitter {
   }
 
   /**
+   * Checks if a cut position lands inside an HTML tag or HTML entity.
+   */
+  private static isInsideTagOrEntity(html: string, pos: number): boolean {
+    if (pos <= 0 || pos >= html.length) {
+      return false;
+    }
+    const frag = html.slice(0, pos);
+    const lastOpenAngle = frag.lastIndexOf('<');
+    const lastCloseAngle = frag.lastIndexOf('>');
+    if (lastOpenAngle !== -1 && lastOpenAngle > lastCloseAngle) {
+      return true;
+    }
+    const lastAmp = frag.lastIndexOf('&');
+    const lastSemi = frag.lastIndexOf(';');
+    if (lastAmp !== -1 && lastAmp > lastSemi && pos - lastAmp < 10) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Locates a natural splitting boundary (paragraph break, line break, sentence, word)
    * strictly before maxLength, ensuring we do not cut inside <tag> or &entity;.
    */
@@ -88,15 +149,17 @@ export class HtmlSplitter {
     let safeLimit = maxLength;
 
     // Safety check 1: ensure safeLimit does not fall inside an HTML tag (<...>)
-    const lastOpenAngle = html.lastIndexOf('<', safeLimit);
-    const lastCloseAngle = html.lastIndexOf('>', safeLimit);
+    const fragment = html.slice(0, safeLimit);
+    const lastOpenAngle = fragment.lastIndexOf('<');
+    const lastCloseAngle = fragment.lastIndexOf('>');
     if (lastOpenAngle !== -1 && lastOpenAngle > lastCloseAngle) {
       safeLimit = lastOpenAngle;
     }
 
     // Safety check 2: ensure safeLimit does not fall inside an HTML entity (&...;)
-    const lastAmp = html.lastIndexOf('&', safeLimit);
-    const lastSemicolon = html.lastIndexOf(';', safeLimit);
+    const safeFrag = html.slice(0, safeLimit);
+    const lastAmp = safeFrag.lastIndexOf('&');
+    const lastSemicolon = safeFrag.lastIndexOf(';');
     if (lastAmp !== -1 && lastAmp > lastSemicolon && safeLimit - lastAmp < 10) {
       safeLimit = lastAmp;
     }
@@ -112,13 +175,19 @@ export class HtmlSplitter {
     // 1. Paragraph break (\n\n)
     const paragraphBreak = windowText.lastIndexOf('\n\n');
     if (paragraphBreak !== -1) {
-      return minAcceptable + paragraphBreak + 2;
+      const candidate = minAcceptable + paragraphBreak + 2;
+      if (!this.isInsideTagOrEntity(html, candidate)) {
+        return candidate;
+      }
     }
 
     // 2. Line break (\n)
     const lineBreak = windowText.lastIndexOf('\n');
     if (lineBreak !== -1) {
-      return minAcceptable + lineBreak + 1;
+      const candidate = minAcceptable + lineBreak + 1;
+      if (!this.isInsideTagOrEntity(html, candidate)) {
+        return candidate;
+      }
     }
 
     // 3. Sentence end followed by whitespace (. / ! / ?)
@@ -126,16 +195,25 @@ export class HtmlSplitter {
     let match: RegExpExecArray | null;
     let lastSentenceEnd = -1;
     while ((match = sentenceMatch.exec(windowText)) !== null) {
-      lastSentenceEnd = match.index + match[0].length;
+      const candidate = minAcceptable + match.index + match[0].length;
+      if (!this.isInsideTagOrEntity(html, candidate)) {
+        lastSentenceEnd = candidate;
+      }
     }
     if (lastSentenceEnd !== -1) {
-      return minAcceptable + lastSentenceEnd;
+      return lastSentenceEnd;
     }
 
     // 4. Space / word boundary
-    const spaceIndex = windowText.lastIndexOf(' ');
-    if (spaceIndex !== -1) {
-      return minAcceptable + spaceIndex + 1;
+    let searchPos = windowText.length;
+    while (searchPos > 0) {
+      const spaceIndex = windowText.lastIndexOf(' ', searchPos - 1);
+      if (spaceIndex === -1) break;
+      const candidate = minAcceptable + spaceIndex + 1;
+      if (!this.isInsideTagOrEntity(html, candidate)) {
+        return candidate;
+      }
+      searchPos = spaceIndex;
     }
 
     // Fallback: strict safe limit
@@ -146,7 +224,7 @@ export class HtmlSplitter {
    * Tracks unclosed tags up to the split position.
    */
   private static getActiveOpenTags(fragment: string): OpenTagInfo[] {
-    const tagRegex = /<\/?([a-zA-Z0-9]+)(?:\s+[^>]*?)?>/g;
+    const tagRegex = /<\/?([a-zA-Z0-9\-]+)(?:\s+[^>]*?)?>/g;
     const stack: OpenTagInfo[] = [];
     let match: RegExpExecArray | null;
 

@@ -37,3 +37,33 @@ Gate Result: **PASS**
 | m2_auditor_1 | teamwork_preview_auditor | CLEAN | handoff.md | Zero mock bypasses, authentic Prisma transactions, 0 tautologies |
 
 Gate Result: **PASS**
+
+---
+
+## Gate — Milestone 3 (Templates, Canonical Rendering & Media) — Iteration 1
+| Agent | Role | Verdict | Source | Notes |
+|-------|------|---------|--------|-------|
+| m3_worker_1 | teamwork_preview_worker | DONE | handoff.md | 218 unit tests pass, 34 E2E tests pass, build clean |
+| m3_reviewer_1 | teamwork_preview_reviewer | APPROVE | handoff.md | TemplatesService & TemplateValidator verified |
+| m3_reviewer_2 | teamwork_preview_reviewer | APPROVE | handoff.md | Canonical Rendering, zero-download MediaService verified |
+| m3_challenger_1_r2 | teamwork_preview_challenger | REQUEST_CHANGES | handoff.md | Defect: HtmlSplitter doesn't budget for closingSuffix length, exceeding 1024/4096 limits |
+| m3_challenger_2_r2 | teamwork_preview_challenger | APPROVE | handoff.md | 22/22 empirical media stress tests pass |
+| m3_auditor_1_r2 | teamwork_preview_auditor | CLEAN | handoff.md | Zero integrity violations, authentic domain implementations, zero tautologies |
+
+Gate Result: **FAIL (m3_challenger_1_r2 REQUEST_CHANGES: HtmlSplitter closingSuffix budget defect)**
+
+---
+
+## Gate — Milestone 3 (Templates, Canonical Rendering & Media) — Iteration 2 (Remediation)
+| Agent | Role | Verdict | Source | Notes |
+|-------|------|---------|--------|-------|
+| m3_worker_2 | teamwork_preview_worker | DONE | handoff.md | Implemented tag-aware iterative budgeting in HtmlSplitter.splitHtml, 299 unit + 34 E2E pass |
+| m3_reviewer_1 | teamwork_preview_reviewer | APPROVE | handoff.md | TemplatesService & TemplateValidator verified (Iteration 1) |
+| m3_reviewer_2 | teamwork_preview_reviewer | APPROVE | handoff.md | Canonical Rendering, zero-download MediaService verified (Iteration 1) |
+| m3_challenger_2_r2 | teamwork_preview_challenger | APPROVE | handoff.md | 22/22 empirical media stress tests pass (Iteration 1) |
+| m3_challenger_3 | teamwork_preview_challenger | APPROVE | handoff.md | 47/47 empirical tests pass (STRESS 3.3/3.4/3.4b pass), 39/39 adversarial unit tests pass |
+| m3_auditor_2 | teamwork_preview_auditor | CLEAN | handoff.md | Forensic integrity confirmed, genuine tag-budgeting loop, zero shortcuts, zero regressions |
+
+Gate Result: **PASS**
+
+

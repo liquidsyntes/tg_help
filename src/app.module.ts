@@ -15,6 +15,9 @@ import { PostsModule } from './modules/posts/posts.module';
 import { TemplatesModule } from './modules/templates/templates.module';
 import { RenderingModule } from './modules/rendering/rendering.module';
 import { MediaModule } from './modules/media/media.module';
+import { TelegramApiModule } from './infrastructure/telegram-api/telegram-api.module';
+import { PublishingModule } from './modules/publishing/publishing.module';
+import { SchedulingModule } from './modules/scheduling/scheduling.module';
 
 @Module({
   imports: [
@@ -34,6 +37,9 @@ import { MediaModule } from './modules/media/media.module';
     TemplatesModule,
     RenderingModule,
     MediaModule,
+    TelegramApiModule,
+    PublishingModule,
+    SchedulingModule,
   ],
 })
 export class AppModule {}
