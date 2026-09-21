@@ -103,12 +103,17 @@ Lead end-to-end implementation of Telegram Content Publisher Bot MVP per R1, R2,
 | m5_explorer_1 | teamwork_preview_explorer | M5 Bot Lifecycle & Auth Explorer | completed | 1ce575f5-b34c-465f-bab2-513ad8b1e709 |
 | m5_explorer_2 | teamwork_preview_explorer | M5 Post Creation Wizard & Autosave Explorer | completed | b1abe2f7-db67-4cf2-acbe-7135d768643f |
 | m5_explorer_3 | teamwork_preview_explorer | M5 Editorial UI, Review & Scheduling Explorer | completed | 02db7614-58af-4b90-8b81-9234e27e2ade |
-| m5_worker_1 | teamwork_preview_worker | M5 Implementation Worker | in-progress | b25f4ec3-afc6-47d6-b4b1-d5757757679c |
+| m5_worker_1 | teamwork_preview_worker | M5 Implementation Worker | completed | b25f4ec3-afc6-47d6-b4b1-d5757757679c |
+| m5_reviewer_1 | teamwork_preview_reviewer | M5 Reviewer 1 (Bot Lifecycle, Auth & Wizard Autosave) | in-progress | ca817010-2d92-46ac-ac9b-90f6c18861fb |
+| m5_reviewer_2 | teamwork_preview_reviewer | M5 Reviewer 2 (Editorial Review, Scheduling & Concurrency) | in-progress | 81c9643a-605e-4283-b3ba-77163e1e8774 |
+| m5_challenger_1 | teamwork_preview_challenger | M5 Challenger 1 (Auth, Autosave & Callback Stress) | in-progress | ec3774e2-441f-41e3-949f-e9d6681d7414 |
+| m5_challenger_2 | teamwork_preview_challenger | M5 Challenger 2 (Editorial Review & Media Burst Stress) | in-progress | 02e823e4-27d0-4067-8bcb-0cac5db019a9 |
+| m5_auditor_1 | teamwork_preview_auditor | M5 Forensic Integrity Auditor | in-progress | 5bfe8794-e40f-458f-9f50-f92f065c9778 |
 
 ## Succession Status
 - Succession required: no
-- Spawn count: 54 / 16
-- Pending subagents: m5_worker_1
+- Spawn count: 59 / 16
+- Pending subagents: m5_reviewer_1, m5_reviewer_2, m5_challenger_1, m5_challenger_2, m5_auditor_1
 - Predecessor: none
 - Successor: not yet spawned
 
