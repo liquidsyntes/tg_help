@@ -20,15 +20,15 @@ Lead end-to-end implementation of Telegram Content Publisher Bot MVP per R1, R2,
 3. **On failure**: Retry -> Replace -> Skip -> Redistribute -> Redesign
 4. **Succession**: Spawn successor at 16 spawns
 - **Work items**:
-  1. Survey & Architecture Specification [in-progress]
-  2. E2E Testing Track Setup [pending]
-  3. Core Foundation & Persistence (Prisma/Postgres/Docker/Config) [pending]
-  4. Domain Workflows & State Machine (OCC, Audit, Transitions) [pending]
-  5. Publishing Engine & BullMQ Idempotency [pending]
-  6. Telegram Transport & Wizard UI [pending]
-  7. E2E Integration & Adversarial Verification [pending]
-- **Current phase**: 1
-- **Current focus**: Survey & Architecture Specification
+  1. Survey & Architecture Specification [done]
+  2. E2E Testing Track Setup [done]
+  3. Core Foundation & Persistence (Prisma/Postgres/Docker/Config) [done]
+  4. Domain Workflows & State Machine (OCC, Audit, Transitions) [done]
+  5. Publishing Engine & BullMQ Idempotency [done]
+  6. Telegram Transport & Wizard UI [done]
+  7. E2E Integration & Adversarial Verification [in-progress]
+- **Current phase**: 2
+- **Current focus**: Milestone 6 — E2E Acceptance & Adversarial Hardening
 
 ## 🔒 Key Constraints
 - NEVER write, modify, or create source code files directly.
@@ -104,16 +104,31 @@ Lead end-to-end implementation of Telegram Content Publisher Bot MVP per R1, R2,
 | m5_explorer_2 | teamwork_preview_explorer | M5 Post Creation Wizard & Autosave Explorer | completed | b1abe2f7-db67-4cf2-acbe-7135d768643f |
 | m5_explorer_3 | teamwork_preview_explorer | M5 Editorial UI, Review & Scheduling Explorer | completed | 02db7614-58af-4b90-8b81-9234e27e2ade |
 | m5_worker_1 | teamwork_preview_worker | M5 Implementation Worker | completed | b25f4ec3-afc6-47d6-b4b1-d5757757679c |
-| m5_reviewer_1 | teamwork_preview_reviewer | M5 Reviewer 1 (Bot Lifecycle, Auth & Wizard Autosave) | in-progress | ca817010-2d92-46ac-ac9b-90f6c18861fb |
-| m5_reviewer_2 | teamwork_preview_reviewer | M5 Reviewer 2 (Editorial Review, Scheduling & Concurrency) | in-progress | 81c9643a-605e-4283-b3ba-77163e1e8774 |
-| m5_challenger_1 | teamwork_preview_challenger | M5 Challenger 1 (Auth, Autosave & Callback Stress) | in-progress | ec3774e2-441f-41e3-949f-e9d6681d7414 |
-| m5_challenger_2 | teamwork_preview_challenger | M5 Challenger 2 (Editorial Review & Media Burst Stress) | in-progress | 02e823e4-27d0-4067-8bcb-0cac5db019a9 |
-| m5_auditor_1 | teamwork_preview_auditor | M5 Forensic Integrity Auditor | in-progress | 5bfe8794-e40f-458f-9f50-f92f065c9778 |
+| m5_reviewer_1 | teamwork_preview_reviewer | M5 Reviewer 1 (Bot Lifecycle, Auth & Wizard Autosave) | completed | ca817010-2d92-46ac-ac9b-90f6c18861fb |
+| m5_reviewer_2 | teamwork_preview_reviewer | M5 Reviewer 2 (Editorial Review, Scheduling & Concurrency) | completed | 81c9643a-605e-4283-b3ba-77163e1e8774 |
+| m5_challenger_1 | teamwork_preview_challenger | M5 Challenger 1 (Auth, Autosave & Callback Stress) | completed | ec3774e2-441f-41e3-949f-e9d6681d7414 |
+| m5_challenger_2 | teamwork_preview_challenger | M5 Challenger 2 (Editorial Review & Media Burst Stress) | completed | 02e823e4-27d0-4067-8bcb-0cac5db019a9 |
+| m5_auditor_1 | teamwork_preview_auditor | M5 Forensic Integrity Auditor | completed | 5bfe8794-e40f-458f-9f50-f92f065c9778 |
+| m5_worker_2 | teamwork_preview_worker | M5 Remediation Worker | completed | f808d553-a524-428e-9d61-9be95f3e71fa |
+| m5_challenger_3 | teamwork_preview_challenger | M5 Remediation Re-Challenger | completed | ecaa98b1-016a-4bb1-8e22-52362cdef8a6 |
+| m5_auditor_2 | teamwork_preview_auditor | M5 Forensic Integrity Re-Auditor | completed | 2f41507a-3a3f-4f50-9b8f-b9bcda94a05f |
+| m5_explorer_4 | teamwork_preview_explorer | M5 Remediation Explorer 1 | completed | c1376d4d-9d49-4e9a-9b51-d2f4c631bac1 |
+| m5_explorer_5 | teamwork_preview_explorer | M5 Remediation Explorer 2 | completed | 5587a657-2e08-4485-a767-320e818806b6 |
+| m5_explorer_6 | teamwork_preview_explorer | M5 Remediation Explorer 3 | completed | 04cd87c0-bda1-475b-8e8c-d08a2ee55dc5 |
+| m5_worker_3 | teamwork_preview_worker | M5 Remediation Worker 3 | completed | bccf6575-72b9-4703-904f-c5c3cbcd6119 |
+| m5_auditor_3 | teamwork_preview_auditor | M5 Final Forensic Auditor | completed | d19f1501-6946-4036-90a5-ca00353de37b |
+| m5_reviewer_4 | teamwork_preview_reviewer | M5 Final Reviewer | completed | 7ee8be3a-5bc7-4a4a-be28-43c1b253aa2b |
+| m5_challenger_4 | teamwork_preview_challenger | M5 Final Challenger | completed | 489c097a-c9b1-481a-9449-fee112fddc23 |
+| m6_challenger_1 | teamwork_preview_challenger | Tier 5 Challenger 1 (Domain & Publishing) | completed | aa7832f0-4396-48cb-aa63-2f7fe3fa6e9f |
+| m6_challenger_2 | teamwork_preview_challenger | Tier 5 Challenger 2 (Transport & Rendering) | completed | 617cbf1d-c447-46c3-b1bd-e2dda7eb2ec3 |
+| m6_worker_1 | teamwork_preview_worker | M6 Remediation Worker (OCC in DraftManager) | completed | b5f5957c-0dae-4e61-8fe3-d995a4ce9f85 |
+| m6_reviewer_1 | teamwork_preview_reviewer | M6 Reviewer (OCC Fix & Transport Track) | in-progress | 0d7a4157-69be-4584-9021-39fbdee3bb2e |
+| m6_auditor_1 | teamwork_preview_auditor | Final Forensic Integrity Auditor | in-progress | 5932a16d-1655-4e2e-acb3-1cd3f0f8a4d7 |
 
 ## Succession Status
 - Succession required: no
-- Spawn count: 59 / 16
-- Pending subagents: m5_reviewer_1, m5_reviewer_2, m5_challenger_1, m5_challenger_2, m5_auditor_1
+- Spawn count: 76 / 16
+- Pending subagents: m6_reviewer_1, m6_auditor_1
 - Predecessor: none
 - Successor: not yet spawned
 

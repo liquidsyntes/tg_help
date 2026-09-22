@@ -75,6 +75,13 @@ export class PostsService {
   }
 
   /**
+   * Retrieves a post by ID with all relations, or null if not found.
+   */
+  async getPostWithRelations(id: string, includeDeleted = false): Promise<Post | null> {
+    return this.postsRepository.findById(id, includeDeleted);
+  }
+
+  /**
    * Step-by-step Autosave: Persists draft field updates directly to PostgreSQL.
    * Enforces Optimistic Concurrency Control (OCC).
    * Enforces Autosave Silent Rule (F-40): emits ZERO notifications.

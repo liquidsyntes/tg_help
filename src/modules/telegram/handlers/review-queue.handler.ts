@@ -13,7 +13,6 @@ import { ReviewQueueService } from '../services/review-queue.service';
 import { TelegramPreviewService, PostWithRelations } from '../services/telegram-preview.service';
 import { PostControlsKeyboardBuilder } from '../keyboards/post-controls.keyboard';
 import { PostWorkflowService } from '../../posts/post-workflow.service';
-import { PostsRepository } from '../../posts/posts.repository';
 import { RedisService } from '../../../infrastructure/redis/redis.service';
 import { StructuredLoggerService } from '../../../infrastructure/logger/structured-logger.service';
 import { ReviewSessionData } from '../interfaces/wizard-session.interface';
@@ -24,7 +23,6 @@ export class ReviewQueueHandler {
     private readonly reviewQueueService: ReviewQueueService,
     private readonly previewService: TelegramPreviewService,
     private readonly postWorkflow: PostWorkflowService,
-    private readonly postsRepository: PostsRepository,
     private readonly redis: RedisService,
     @Optional() private readonly logger?: StructuredLoggerService,
   ) {}
@@ -82,7 +80,7 @@ export class ReviewQueueHandler {
     const user = ctx.authUser;
     if (!user) return;
 
-    const post = (await this.postsRepository.findById(postId)) as PostWithRelations | null;
+    const post = (await this.reviewQueueService.getPost(postId)) as PostWithRelations | null;
     if (!post || post.deletedAt !== null) {
       await ctx.answerCallbackQuery({
         text: '❌ Публикация не найдена или была удалена.',
@@ -125,7 +123,7 @@ export class ReviewQueueHandler {
       targetStatus: PostStatus.APPROVED,
     });
 
-    const fullApproved = (await this.postsRepository.findById(
+    const fullApproved = (await this.reviewQueueService.getPost(
       approved.id,
     )) as PostWithRelations;
 
@@ -157,7 +155,7 @@ export class ReviewQueueHandler {
     const user = ctx.authUser;
     if (!user) return;
 
-    const post = await this.postsRepository.findById(postId);
+    const post = await this.reviewQueueService.getPost(postId);
     if (!post) {
       await ctx.answerCallbackQuery({ text: 'Публикация не найдена', show_alert: true });
       return;
@@ -245,7 +243,7 @@ export class ReviewQueueHandler {
       targetStatus: PostStatus.REJECTED,
     });
 
-    const fullRejected = (await this.postsRepository.findById(
+    const fullRejected = (await this.reviewQueueService.getPost(
       rejected.id,
     )) as PostWithRelations;
 

@@ -126,9 +126,17 @@ export class TelegramBotService implements OnModuleInit, OnApplicationShutdown {
         const postId = data.replace('draft:res:', '');
         return this.draftManagerHandler.handleResumeDraft(ctx, postId);
       }
+      const delMatch = data.match(/^draft:del:([0-9a-fA-F-]+)(?::(\d+))?$/);
+      if (delMatch) {
+        const postId = delMatch[1]!;
+        const versionStr = delMatch[2];
+        return this.draftManagerHandler.handlePromptDeleteDraft(ctx, postId, versionStr);
+      }
       if (data.startsWith('draft:del:')) {
-        const postId = data.replace('draft:del:', '');
-        return this.draftManagerHandler.handlePromptDeleteDraft(ctx, postId);
+        const parts = data.split(':');
+        const postId = parts[2]!;
+        const versionStr = parts[3];
+        return this.draftManagerHandler.handlePromptDeleteDraft(ctx, postId, versionStr);
       }
       if (data.startsWith('draft:cdel:')) {
         const parts = data.split(':');
@@ -136,7 +144,7 @@ export class TelegramBotService implements OnModuleInit, OnApplicationShutdown {
         const versionStr = parts[3] ?? '1';
         return this.draftManagerHandler.handleConfirmDeleteDraft(ctx, postId, versionStr);
       }
-      if (data.startsWith('draft:edit:')) {
+      if (data.startsWith('d:e:') || data.startsWith('draft:edit:')) {
         const parts = data.split(':');
         const postId = parts[2]!;
         const fieldKey = parts[3]!;

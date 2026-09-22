@@ -5,7 +5,7 @@
  */
 
 import { Injectable } from '@nestjs/common';
-import { PostStatus, ChannelRole } from '@prisma/client';
+import { Post, PostStatus, ChannelRole } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
 import { PostsRepository } from '../../posts/posts.repository';
 import { AuthUser } from '../../auth/interfaces/auth-user.interface';
@@ -99,5 +99,12 @@ export class ReviewQueueService {
 
     html += `───────────────────────────────`;
     return html;
+  }
+
+  /**
+   * Retrieves a post by ID for review inspection.
+   */
+  async getPost(postId: string): Promise<Post | null> {
+    return this.postsRepository.findById(postId);
   }
 }

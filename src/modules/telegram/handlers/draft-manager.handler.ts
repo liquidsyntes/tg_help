@@ -53,7 +53,7 @@ export class DraftManagerHandler {
         `   Изменен: ${dateStr}\n\n`;
 
       kb.text(`✏️ ${i + 1}. Открыть`, `draft:res:${d.id}`);
-      kb.text(`🗑 Удалить`, `draft:del:${d.id}`).row();
+      kb.text(`🗑 Удалить`, `draft:del:${d.id}:${d.version}`).row();
     }
 
     kb.text('🔙 В главное меню', 'nav:main');
@@ -96,16 +96,26 @@ export class DraftManagerHandler {
   }
 
   /**
-   * Prompt delete draft: draft:del:<postId>
+   * Prompt delete draft: draft:del:<postId>[:<version>]
    */
-  async handlePromptDeleteDraft(ctx: BotContext, postId: string): Promise<void> {
+  async handlePromptDeleteDraft(
+    ctx: BotContext,
+    postId: string,
+    versionStr?: string,
+  ): Promise<void> {
     const user = ctx.authUser;
     if (!user) return;
 
     await ctx.answerCallbackQuery();
 
+    let version = versionStr ? parseInt(versionStr, 10) : NaN;
+    if (isNaN(version)) {
+      const post = await this.draftManagerService.getDraft(postId);
+      version = post?.version ?? 1;
+    }
+
     const kb = new InlineKeyboard()
-      .text('🗑 Да, удалить', `draft:cdel:${postId}:1`)
+      .text('🗑 Да, удалить', `draft:cdel:${postId}:${version}`)
       .text('🔙 Отмена', `draft:res:${postId}`);
 
     await ctx.reply(

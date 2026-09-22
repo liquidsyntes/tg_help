@@ -1,4 +1,4 @@
-# BRIEFING — 2026-09-21T19:26:30Z
+# BRIEFING — 2026-09-21T23:30:00Z
 
 ## Mission
 Review Milestone 5 implementation focusing on Bot Lifecycle, Auth Middleware, Post Wizard & Immediate Autosave
@@ -18,7 +18,7 @@ Review Milestone 5 implementation focusing on Bot Lifecycle, Auth Middleware, Po
 
 ## Current Parent
 - Conversation ID: 6f35b072-3fac-43df-87fc-95e48993acc2
-- Updated: not yet
+- Updated: 2026-09-21T23:29:54Z
 
 ## Review Scope
 - **Files to review**:
@@ -35,20 +35,32 @@ Review Milestone 5 implementation focusing on Bot Lifecycle, Auth Middleware, Po
 - **Review criteria**: correctness, style, conformance, adversarial edge cases, integrity
 
 ## Review Checklist
-- **Items reviewed**: none yet
-- **Verdict**: pending
-- **Unverified claims**: none yet
+- **Items reviewed**:
+  - Bot lifecycle, polling runner, webhook handler & secret token timing comparison (VERIFIED)
+  - Auth middleware, BigInt Telegram ID, unregistered prompt with ID, deactivated rejection (VERIFIED)
+  - Centralized exception filter mapping and alert dialogs (VERIFIED)
+  - Dynamic wizard field loop and immediate PostgreSQL autosave (VERIFIED)
+  - Draft resumption from first missing field and granular field editing under OCC (VERIFIED)
+  - Canonical preview rendering parity and companion Control Card pattern (VERIFIED)
+- **Verdict**: APPROVE
+- **Unverified claims**: None (all claims independently verified via build, test, and test:e2e)
 
 ## Attack Surface
-- **Hypotheses tested**: none yet
-- **Vulnerabilities found**: none yet
-- **Untested angles**: concurrency, edge cases, session leaks, token timing attacks, media handling in wizard
+- **Hypotheses tested**:
+  - Webhook secret token timing attack (mitigated by timingSafeEqual)
+  - Concurrent post modification / stale button clicking (mitigated by OCC version checks)
+  - Redis cache failure / restart during wizard (mitigated by immediate PostgreSQL autosave)
+  - Callback data overflow (mitigated by compact codec $\le 52$ bytes)
+- **Vulnerabilities found**: None
+- **Untested angles**: Horizontal clustering of in-memory media debouncer (noted in caveats)
 
 ## Key Decisions Made
-- Initialized briefing and review setup
+- Confirmed full compliance with AGENTS.md §3, §11, §12, §15, §16, §51, §52
+- Verified test suite: 452 unit tests and 34 E2E tests pass 100%
+- Issued verdict: APPROVE
 
 ## Artifact Index
-- DISPATCH.md — incoming instructions
-- BRIEFING.md — working memory
-- report.md — review report (pending)
-- handoff.md — 5-component handoff (pending)
+- DISPATCH.md — incoming instructions and resumption notifications
+- BRIEFING.md — persistent working memory
+- report.md — comprehensive quality and adversarial review report
+- handoff.md — 5-component handoff report

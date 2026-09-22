@@ -204,7 +204,7 @@ export class DraftManagerService {
 
     await this.postsService.autosaveStep(
       session.postId,
-      post.version,
+      session.expectedVersion ?? post.version,
       actorId,
       session.fieldKey,
       coerced,
@@ -219,6 +219,13 @@ export class DraftManagerService {
       text: `✅ Поле «${field.label}» успешно обновлено!`,
       post: updated,
     };
+  }
+
+  /**
+   * Retrieves a draft by ID.
+   */
+  async getDraft(postId: string): Promise<Post | null> {
+    return this.postsRepository.findById(postId);
   }
 
   /**

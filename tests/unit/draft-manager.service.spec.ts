@@ -1,4 +1,7 @@
 import { DraftManagerService } from '../../src/modules/telegram/services/draft-manager.service';
+import { DraftManagerHandler } from '../../src/modules/telegram/handlers/draft-manager.handler';
+import { TelegramPreviewService } from '../../src/modules/telegram/services/telegram-preview.service';
+import { BotContext } from '../../src/modules/telegram/interfaces/bot-context.interface';
 import { PostsService } from '../../src/modules/posts/posts.service';
 import { PostsRepository } from '../../src/modules/posts/posts.repository';
 import { TemplatesService } from '../../src/modules/templates/templates.service';
@@ -171,5 +174,124 @@ describe('DraftManagerService', () => {
   it('should soft-delete draft with expected version', async () => {
     await service.deleteDraft('author-1', 'post-1', 1);
     expect(postsService.softDeletePost).toHaveBeenCalledWith('post-1', 1, 'author-1');
+  });
+
+  it('should retrieve a draft by ID via getDraft', async () => {
+    const post = await service.getDraft('post-1');
+    expect(postsRepository.findById).toHaveBeenCalledWith('post-1');
+    expect(post?.id).toBe('post-1');
+  });
+});
+
+describe('DraftManagerHandler', () => {
+  let handler: DraftManagerHandler;
+  let mockDraftManagerService: Partial<DraftManagerService>;
+  let mockPreviewService: Partial<TelegramPreviewService>;
+
+  beforeEach(() => {
+    mockDraftManagerService = {
+      listDrafts: jest.fn().mockResolvedValue([
+        {
+          id: 'draft-1',
+          version: 3,
+          contentJson: { title: 'Draft Post' },
+          updatedAt: new Date(),
+          template: { name: 'News' },
+          channel: { title: 'News Channel', timezone: 'Europe/Kyiv' },
+          status: PostStatus.DRAFT,
+        } as any,
+      ]),
+      getDraft: jest.fn().mockResolvedValue({
+        id: 'draft-1',
+        version: 3,
+      } as any),
+      deleteDraft: jest.fn().mockResolvedValue({} as any),
+    };
+
+    mockPreviewService = {
+      sendPostPreview: jest.fn().mockResolvedValue(undefined),
+    };
+
+    handler = new DraftManagerHandler(
+      mockDraftManagerService as DraftManagerService,
+      mockPreviewService as TelegramPreviewService,
+    );
+  });
+
+  it('handleListDrafts includes draft version in draft:del callback data', async () => {
+    const ctx = {
+      authUser: { id: 'user-1' },
+      reply: jest.fn().mockResolvedValue({}),
+    } as unknown as BotContext;
+
+    await handler.handleListDrafts(ctx);
+
+    expect(ctx.reply).toHaveBeenCalled();
+    const call = (ctx.reply as jest.Mock).mock.calls[0];
+    const replyMarkup = call[1]?.reply_markup;
+    const buttons = replyMarkup.inline_keyboard.flat();
+    const deleteBtn = buttons.find((b: any) => b.text.includes('Удалить'));
+    expect(deleteBtn).toBeDefined();
+    expect(deleteBtn.callback_data).toBe('draft:del:draft-1:3');
+  });
+
+  it('handlePromptDeleteDraft uses versionStr if provided', async () => {
+    const ctx = {
+      authUser: { id: 'user-1' },
+      answerCallbackQuery: jest.fn().mockResolvedValue(true),
+      reply: jest.fn().mockResolvedValue({}),
+    } as unknown as BotContext;
+
+    await handler.handlePromptDeleteDraft(ctx, 'draft-1', '5');
+
+    const call = (ctx.reply as jest.Mock).mock.calls[0];
+    const buttons = call[1]?.reply_markup.inline_keyboard.flat();
+    const confirmBtn = buttons.find((b: any) => b.text.includes('Да, удалить'));
+    expect(confirmBtn.callback_data).toBe('draft:cdel:draft-1:5');
+  });
+
+  it('handlePromptDeleteDraft queries post version if versionStr not provided', async () => {
+    const ctx = {
+      authUser: { id: 'user-1' },
+      answerCallbackQuery: jest.fn().mockResolvedValue(true),
+      reply: jest.fn().mockResolvedValue({}),
+    } as unknown as BotContext;
+
+    await handler.handlePromptDeleteDraft(ctx, 'draft-1');
+
+    expect(mockDraftManagerService.getDraft).toHaveBeenCalledWith('draft-1');
+    const call = (ctx.reply as jest.Mock).mock.calls[0];
+    const buttons = call[1]?.reply_markup.inline_keyboard.flat();
+    const confirmBtn = buttons.find((b: any) => b.text.includes('Да, удалить'));
+    expect(confirmBtn.callback_data).toBe('draft:cdel:draft-1:3');
+  });
+
+  it('handlePromptDeleteDraft falls back to version 1 if draft is not found in service', async () => {
+    (mockDraftManagerService.getDraft as jest.Mock).mockResolvedValueOnce(null);
+    const ctx = {
+      authUser: { id: 'user-1' },
+      answerCallbackQuery: jest.fn().mockResolvedValue(true),
+      reply: jest.fn().mockResolvedValue({}),
+    } as unknown as BotContext;
+
+    await handler.handlePromptDeleteDraft(ctx, 'draft-unknown');
+
+    expect(mockDraftManagerService.getDraft).toHaveBeenCalledWith('draft-unknown');
+    const call = (ctx.reply as jest.Mock).mock.calls[0];
+    const buttons = call[1]?.reply_markup.inline_keyboard.flat();
+    const confirmBtn = buttons.find((b: any) => b.text.includes('Да, удалить'));
+    expect(confirmBtn.callback_data).toBe('draft:cdel:draft-unknown:1');
+  });
+
+  it('handleConfirmDeleteDraft parses dynamic version and calls deleteDraft', async () => {
+    const ctx = {
+      authUser: { id: 'user-1' },
+      answerCallbackQuery: jest.fn().mockResolvedValue(true),
+      reply: jest.fn().mockResolvedValue({}),
+    } as unknown as BotContext;
+
+    await handler.handleConfirmDeleteDraft(ctx, 'draft-1', '3');
+
+    expect(mockDraftManagerService.deleteDraft).toHaveBeenCalledWith('user-1', 'draft-1', 3);
   });
 });

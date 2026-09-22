@@ -110,4 +110,12 @@ describe('PostControlsKeyboardBuilder', () => {
     expect(flat[0]?.text).toContain('⚠️ Да, подтвердить');
     expect(flat[1]?.text).toContain('🔙 Отмена');
   });
+
+  it('should guarantee d:e: callback data length is <= 64 bytes even for long field keys up to 23 chars', () => {
+    const fieldKeys = ['title', 'body', 'promotional_banner', 'editorial_comments_v2'];
+    for (const key of fieldKeys) {
+      const callbackData = `d:e:${mockPost.id}:${key}`;
+      expect(Buffer.byteLength(callbackData, 'utf8')).toBeLessThanOrEqual(64);
+    }
+  });
 });

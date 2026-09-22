@@ -17,7 +17,6 @@ import {
 } from '../keyboards/post-controls.keyboard';
 import { PostWorkflowService } from '../../posts/post-workflow.service';
 import { PostsService } from '../../posts/posts.service';
-import { PostsRepository } from '../../posts/posts.repository';
 import { PublishingService } from '../../publishing/publishing.service';
 import { SchedulingService } from '../../scheduling/scheduling.service';
 import { RedisService } from '../../../infrastructure/redis/redis.service';
@@ -39,7 +38,6 @@ export class PostActionsHandler {
     private readonly previewService: TelegramPreviewService,
     private readonly postWorkflow: PostWorkflowService,
     private readonly postsService: PostsService,
-    private readonly postsRepository: PostsRepository,
     private readonly publishingService: PublishingService,
     private readonly schedulingService: SchedulingService,
     private readonly redis: RedisService,
@@ -77,7 +75,7 @@ export class PostActionsHandler {
     const user = ctx.authUser;
     if (!user) return;
 
-    const post = (await this.postsRepository.findById(postId)) as PostWithRelations | null;
+    const post = (await this.postsService.getPostWithRelations(postId)) as PostWithRelations | null;
     if (!post || post.deletedAt !== null) {
       await ctx.answerCallbackQuery({
         text: '❌ Публикация не найдена или была удалена.',
@@ -105,7 +103,7 @@ export class PostActionsHandler {
       targetStatus: PostStatus.PENDING_REVIEW,
     });
 
-    const full = (await this.postsRepository.findById(submitted.id)) as PostWithRelations;
+    const full = (await this.postsService.getPostWithRelations(submitted.id)) as PostWithRelations;
     await this.refreshControlCard(
       ctx,
       full,
@@ -176,7 +174,7 @@ export class PostActionsHandler {
   async handleViewPost(ctx: BotContext, postId: string): Promise<void> {
     await ctx.answerCallbackQuery();
 
-    const post = (await this.postsRepository.findById(postId)) as PostWithRelations | null;
+    const post = (await this.postsService.getPostWithRelations(postId)) as PostWithRelations | null;
     if (!post || post.deletedAt !== null) {
       await ctx.reply('❌ Публикация не найдена или была удалена.');
       return;
@@ -198,7 +196,7 @@ export class PostActionsHandler {
   async handleEditPostMenu(ctx: BotContext, postId: string): Promise<void> {
     await ctx.answerCallbackQuery();
 
-    const post = await this.postsRepository.findById(postId);
+    const post = await this.postsService.getPostWithRelations(postId);
     if (!post) return;
 
     const template = await this.templatesService.getById(post.templateId);
@@ -206,7 +204,7 @@ export class PostActionsHandler {
 
     const kb = new InlineKeyboard();
     for (const field of schema.fields) {
-      kb.text(`✏️ ${field.label}`, `draft:edit:${post.id}:${field.key}`).row();
+      kb.text(`✏️ ${field.label}`, `d:e:${post.id}:${field.key}`).row();
     }
     kb.text('🔙 Назад к публикации', `p:view:${post.id}`);
 
@@ -229,7 +227,7 @@ export class PostActionsHandler {
 
     await ctx.answerCallbackQuery();
 
-    const post = await this.postsRepository.findById(postId);
+    const post = await this.postsService.getPostWithRelations(postId);
     if (!post) return;
 
     // Set wizard session in Redis
@@ -271,7 +269,7 @@ export class PostActionsHandler {
     const user = ctx.authUser;
     if (!user) return;
 
-    const post = (await this.postsRepository.findById(postId)) as PostWithRelations | null;
+    const post = (await this.postsService.getPostWithRelations(postId)) as PostWithRelations | null;
     if (!post || post.deletedAt !== null) {
       await ctx.answerCallbackQuery({
         text: '❌ Публикация не найдена.',
@@ -313,7 +311,7 @@ export class PostActionsHandler {
     const user = ctx.authUser;
     if (!user) return;
 
-    const post = (await this.postsRepository.findById(postId)) as PostWithRelations | null;
+    const post = (await this.postsService.getPostWithRelations(postId)) as PostWithRelations | null;
     if (!post) return;
 
     await ctx.answerCallbackQuery();
@@ -361,7 +359,7 @@ export class PostActionsHandler {
     const user = ctx.authUser;
     if (!user) return;
 
-    const post = (await this.postsRepository.findById(postId)) as PostWithRelations | null;
+    const post = (await this.postsService.getPostWithRelations(postId)) as PostWithRelations | null;
     if (!post) return;
 
     await ctx.answerCallbackQuery({ text: 'Планирование...' });
@@ -397,7 +395,7 @@ export class PostActionsHandler {
 
     await this.redis.del(this.scheduleSessionKey(user.id));
 
-    const full = (await this.postsRepository.findById(scheduled.id)) as PostWithRelations;
+    const full = (await this.postsService.getPostWithRelations(scheduled.id)) as PostWithRelations;
     const formatted = formatChannelDate(scheduledDate, zone);
 
     await ctx.reply(
@@ -466,7 +464,7 @@ export class PostActionsHandler {
       expectedVersion,
     );
 
-    const full = (await this.postsRepository.findById(cancelled.id)) as PostWithRelations;
+    const full = (await this.postsService.getPostWithRelations(cancelled.id)) as PostWithRelations;
     await this.refreshControlCard(ctx, full, '🚫 <b>Запланированная публикация отменена.</b>');
   }
 
@@ -502,7 +500,7 @@ export class PostActionsHandler {
       return false;
     }
 
-    const post = (await this.postsRepository.findById(session.postId)) as PostWithRelations | null;
+    const post = (await this.postsService.getPostWithRelations(session.postId)) as PostWithRelations | null;
     if (!post) {
       await this.redis.del(this.scheduleSessionKey(user.id));
       return false;
@@ -532,7 +530,7 @@ export class PostActionsHandler {
 
     await this.redis.del(this.scheduleSessionKey(user.id));
 
-    const full = (await this.postsRepository.findById(scheduled.id)) as PostWithRelations;
+    const full = (await this.postsService.getPostWithRelations(scheduled.id)) as PostWithRelations;
     const formatted = formatChannelDate(targetDate, zone);
 
     await ctx.reply(

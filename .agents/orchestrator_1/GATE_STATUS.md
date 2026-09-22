@@ -86,13 +86,39 @@ Gate Result: **PASS**
 | Agent | Role | Verdict | Source | Notes |
 |-------|------|---------|--------|-------|
 | m5_worker_1 | teamwork_preview_worker | DONE | handoff.md | 452 unit + 34 E2E tests pass, build clean |
-| m5_reviewer_1 | teamwork_preview_reviewer | IN_PROGRESS | pending | Bot Lifecycle, Auth & Wizard Autosave |
-| m5_reviewer_2 | teamwork_preview_reviewer | IN_PROGRESS | pending | Editorial Review, Scheduling & Concurrency |
-| m5_challenger_1 | teamwork_preview_challenger | IN_PROGRESS | pending | Auth, Autosave & Callback Stress |
-| m5_challenger_2 | teamwork_preview_challenger | IN_PROGRESS | pending | Editorial Review & Media Burst Stress |
-| m5_auditor_1 | teamwork_preview_auditor | IN_PROGRESS | pending | Forensic Integrity Audit |
+| m5_reviewer_1 | teamwork_preview_reviewer | APPROVE | handoff.md | Bot Lifecycle, Auth Middleware, Wizard Immediate Autosave verified |
+| m5_reviewer_2 | teamwork_preview_reviewer | APPROVE | handoff.md | Editorial Review, Scheduling, Concurrency Defense & Notifications verified |
+| m5_challenger_1 | teamwork_preview_challenger | REQUEST_CHANGES | handoff.md | Defect: draft-manager.handler.ts:108 hardcodes version 1 for draft deletion confirmation, breaking deletion of autosaved drafts (version >= 2) with PostConflictException |
+| m5_challenger_2 | teamwork_preview_challenger | APPROVE | handoff.md | 19/19 empirical tests pass, revision comment enforcement, companion control card, media debouncing verified |
+| m5_auditor_1 | teamwork_preview_auditor | CLEAN | handoff.md | Authentic domain & transport implementation, zero facades/tautologies, zero Prisma in handlers, autosave verified |
 
-Gate Result: **IN_PROGRESS**
+Gate Result: **FAIL (m5_challenger_1 REQUEST_CHANGES: draft-manager.handler.ts:108 hardcodes version 1 for draft deletion confirmation, breaking deletion of autosaved drafts)**
+
+---
+
+## Gate — Milestone 5 (Telegram Transport & Interactive Wizard UI) — Iteration 2 (Remediation)
+| Agent | Role | Verdict | Source | Notes |
+|-------|------|---------|--------|-------|
+| m5_worker_2 | teamwork_preview_worker | DONE | handoff.md | Dynamic version resolution in draft:del and draft:cdel, shortened d:e: prefix, 501 unit + 34 E2E pass |
+| m5_reviewer_1 | teamwork_preview_reviewer | APPROVE | handoff.md | Bot Lifecycle, Auth Middleware, Wizard Immediate Autosave verified (Iteration 1) |
+| m5_reviewer_2 | teamwork_preview_reviewer | APPROVE | handoff.md | Editorial Review, Scheduling, Concurrency Defense & Notifications verified (Iteration 1) |
+| m5_challenger_2 | teamwork_preview_challenger | APPROVE | handoff.md | 19/19 empirical tests pass, revision comment enforcement, companion control card, media debouncing verified (Iteration 1) |
+| m5_challenger_3 | teamwork_preview_challenger | APPROVE | handoff.md | git grep ":1" returns 0 matches, 24/24 adversarial tests pass (Test 5.1 passes), 41-byte d:e: prefix verified, 501 unit + 34 E2E pass |
+| m5_auditor_2 | teamwork_preview_auditor | INTEGRITY VIOLATION | handoff.md | INTEGRITY VIOLATION: Two explicit as any casts in draft-manager.handler.ts:118-119, and postsRepository injection in transport handler violating AGENTS.md §3, §5, §6 |
+
+Gate Result: **FAIL (m5_auditor_2 INTEGRITY VIOLATION — BINARY VETO)**
+
+---
+
+## Gate — Milestone 5 (Telegram Transport & Interactive Wizard UI) — Iteration 3 (Remediation & Final Sign-Off)
+| Agent | Role | Verdict | Source | Notes |
+|-------|------|---------|--------|-------|
+| m5_worker_3 | teamwork_preview_worker | DONE | handoff.md | Eliminated all as any, eliminated postsRepository from all handlers, delegated to services, 502 unit + 34 E2E pass |
+| m5_reviewer_4 | teamwork_preview_reviewer | APPROVE | handoff.md | Clean architectural layering, zero repository in handlers, strict TypeScript, clean build & tests |
+| m5_challenger_4 | teamwork_preview_challenger | APPROVE | handoff.md | 24/24 adversarial tests pass, 19/19 preview tests pass, OCC dynamic deletion verified, 502 unit + 34 E2E pass |
+| m5_auditor_3 | teamwork_preview_auditor | CLEAN | handoff.md | 0 as any in src/, 0 code any in src/, 0 repository in handlers, zero tautologies, binary audit CLEAN |
+
+Gate Result: **PASS**
 
 
 
