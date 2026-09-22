@@ -1,6 +1,6 @@
 # Telegram Content Publisher Bot — Полная документация проекта
 
-> **Актуальность:** 22 сентября 2026
+> **Актуальность:** 22 сентября 2026, 09:49 (commit `307a14e`)
 > **Цель:** понять проект за 15 минут и продолжить работу.
 
 ---
@@ -450,9 +450,9 @@ ITelegramPublisher (interface + DI token)
 
 | Тип | Файлов | Тестов | Runner |
 |-----|--------|--------|--------|
-| Unit | 34 suite | ~559 | Jest |
+| Unit | 34 suites | 559 | Jest |
 | E2E | 4 tiers | 34 | node:test |
-| Adversarial / Stress | 8+ | ~100+ | Jest |
+| Adversarial / Stress | 8+ suites | ~100+ | Jest (included in unit count) |
 
 ```bash
 npm test              # Unit (Jest)
@@ -478,45 +478,35 @@ npm run build         # TypeScript build
 
 > [!IMPORTANT]
 > **M1–M5 полностью прошли gate review** (worker + reviewer + challenger + auditor).
-> **M6** — финальная фаза: adversarial тестирование + hardening. Два challenger'а завершили работу (22 + 35 тестов pass). Worker исправил OCC-баг. Ожидают: m6_reviewer_1 и m6_auditor_1 (прерваны server restart).
+> **M6** — финальная фаза: adversarial тестирование + hardening. Два challenger'а завершили работу (22 + 35 тестов pass). Worker исправил OCC-баг. m6_reviewer_1 и m6_auditor_1 были прерваны server restart и **не завершены**.
 
-## 3.2. Uncommitted changes (важно!)
+## 3.2. Что вошло в последний коммит (`307a14e`)
 
-В рабочей копии есть изменения, **не зафиксированные в git**:
+Коммит от 22.09.2026 09:49 зафиксировал **все** ранее uncommitted изменения. Рабочее дерево **чистое**.
 
-### Исправления кода
+### Исправления кода (теперь в git)
 
 | Файл | Что изменилось |
 |------|---------------|
-| [`posts.service.ts`](file:///c:/TgHelp/src/modules/posts/posts.service.ts) | Незначительные изменения |
-| [`draft-manager.handler.ts`](file:///c:/TgHelp/src/modules/telegram/handlers/draft-manager.handler.ts) | **Fix:** draft:del теперь передаёт `version` (было hardcoded 1) |
-| [`draft-manager.service.ts`](file:///c:/TgHelp/src/modules/telegram/services/draft-manager.service.ts) | **Fix:** `submitEditedField` использует `session.expectedVersion` вместо `post.version` (OCC bypass fix) |
-| [`telegram-bot.service.ts`](file:///c:/TgHelp/src/modules/telegram/telegram-bot.service.ts) | **Fix:** regex-парсинг `draft:del:` + поддержка `d:e:` prefix |
-| [`post-actions.handler.ts`](file:///c:/TgHelp/src/modules/telegram/handlers/post-actions.handler.ts) | Изменения для M5/M6 |
-| [`review-queue.handler.ts`](file:///c:/TgHelp/src/modules/telegram/handlers/review-queue.handler.ts) | Изменения для M5 |
+| [`draft-manager.handler.ts`](file:///c:/TgHelp/src/modules/telegram/handlers/draft-manager.handler.ts) | `draft:del` передаёт `version` (было hardcoded 1 → OCC-баг) |
+| [`draft-manager.service.ts`](file:///c:/TgHelp/src/modules/telegram/services/draft-manager.service.ts) | `submitEditedField` использует `session.expectedVersion` (OCC bypass fix) |
+| [`telegram-bot.service.ts`](file:///c:/TgHelp/src/modules/telegram/telegram-bot.service.ts) | regex-парсинг `draft:del:` + поддержка `d:e:` prefix |
+| [`post-actions.handler.ts`](file:///c:/TgHelp/src/modules/telegram/handlers/post-actions.handler.ts) | Изменения UI для M5/M6 |
+| [`review-queue.handler.ts`](file:///c:/TgHelp/src/modules/telegram/handlers/review-queue.handler.ts) | Изменения UI для M5 |
 | [`review-queue.service.ts`](file:///c:/TgHelp/src/modules/telegram/services/review-queue.service.ts) | Изменения для M5 |
+| [`posts.service.ts`](file:///c:/TgHelp/src/modules/posts/posts.service.ts) | Незначительные правки |
 
-### Новые тестовые файлы
+### Новые файлы (теперь в git)
 
 | Файл | Описание |
 |------|---------|
-| `adversarial-empirical-m5.spec.ts` | 24 adversarial теста (auth, autosave, OCC) |
-| `adversarial-empirical-m5-preview.spec.ts` | 19 preview/burst стресс-тестов |
-| `adversarial-empirical-m6-domain.spec.ts` | 22 теста: partial resume, idempotency race, error matrix, OCC |
-| `adversarial-empirical-m6-transport.spec.ts` | 35 тестов: transport + rendering hardening |
-
-### Рекомендация
-
-```bash
-# 1. Проверить что всё работает
-npm test              # Ожидается ~559 tests pass
-npm run test:e2e      # Ожидается 34 pass
-npm run build         # Ожидается clean build
-
-# 2. Если всё ok — закоммитить
-git add -A
-git commit -m "feat: M6 adversarial hardening + OCC fixes in draft manager"
-```
+| `tests/unit/adversarial-empirical-m5.spec.ts` | 24 adversarial теста (auth, autosave, OCC) |
+| `tests/unit/adversarial-empirical-m5-preview.spec.ts` | 19 preview/burst стресс-тестов |
+| `tests/unit/adversarial-empirical-m6-domain.spec.ts` | 22 теста: partial resume, idempotency race, error matrix, OCC |
+| `tests/unit/adversarial-empirical-m6-transport.spec.ts` | 35 тестов: transport + rendering hardening |
+| `ARCHITECTURE.md` | Эта документация |
+| `DECISIONS.md` | Журнал архитектурных решений |
+| `.agents/m5_*/`, `.agents/m6_*/` | 30+ рабочих директорий AI-агентов с отчётами |
 
 ## 3.3. Что делать дальше
 
@@ -634,6 +624,7 @@ const updated = await postsRepository.updateWithOcc(postId, expectedVersion, dat
 ## 3.6. Git
 
 - **Ветка:** `main` (единственная)
-- **Коммитов:** 8 (последний: `feat(telegram): implement interactive UI wizard and transport layer`)
-- **Uncommitted:** исправления M5/M6 (OCC fix, draft version, adversarial tests)
-- **`.agents/`** — рабочие файлы AI-оркестратора (77 директорий, можно не трогать)
+- **Коммитов:** 9
+- **Последний:** `307a14e` — *Двадцатый отчет (фаза 20). Покрытие UI-слоя тестами и подготовка к проверке (Майлстоун 5)*
+- **Рабочее дерево:** чистое (все изменения закоммичены)
+- **`.agents/`** — рабочие файлы AI-оркестратора (77+ директорий, можно не трогать)
