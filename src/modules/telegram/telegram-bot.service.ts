@@ -87,6 +87,7 @@ export class TelegramBotService implements OnModuleInit, OnApplicationShutdown {
 
     this.bot.command('newpost', async (ctx) => this.wizardHandler.handleStartWizard(ctx));
     this.bot.hears('➕ Создать пост', async (ctx) => this.wizardHandler.handleStartWizard(ctx));
+    this.bot.hears('📑 Скопировать пост', async (ctx) => this.wizardHandler.handleStartCopyWizard(ctx));
 
     this.bot.command('drafts', async (ctx) => this.draftManagerHandler.handleListDrafts(ctx));
     this.bot.hears('📝 Мои материалы', async (ctx) => this.draftManagerHandler.handleListDrafts(ctx));
@@ -215,6 +216,18 @@ export class TelegramBotService implements OnModuleInit, OnApplicationShutdown {
         const postId = parts[2]!;
         const version = parseInt(parts[3]!, 10) || 1;
         return this.postActionsHandler.handleManageMedia(ctx, postId, version);
+      }
+      if (data.startsWith('p:madd:')) {
+        const parts = data.split(':');
+        const postId = parts[2]!;
+        const version = parseInt(parts[3]!, 10) || 1;
+        return this.postActionsHandler.handleAddMedia(ctx, postId, version);
+      }
+      if (data.startsWith('p:mclr:')) {
+        const parts = data.split(':');
+        const postId = parts[2]!;
+        const version = parseInt(parts[3]!, 10) || 1;
+        return this.postActionsHandler.handleClearMedia(ctx, postId, version);
       }
 
       // Publishing & Scheduling callbacks

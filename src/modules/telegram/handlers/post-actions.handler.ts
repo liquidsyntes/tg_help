@@ -21,6 +21,7 @@ import { PublishingService } from '../../publishing/publishing.service';
 import { SchedulingService } from '../../scheduling/scheduling.service';
 import { RedisService } from '../../../infrastructure/redis/redis.service';
 import { TemplatesService } from '../../templates/templates.service';
+import { MediaService } from '../../media/media.service';
 import { TemplateSchema } from '../../templates/interfaces/template.interface';
 import {
   parseAndValidateScheduledDate,
@@ -40,6 +41,7 @@ export class PostActionsHandler {
     private readonly postsService: PostsService,
     private readonly publishingService: PublishingService,
     private readonly schedulingService: SchedulingService,
+    private readonly mediaService: MediaService,
     private readonly redis: RedisService,
     private readonly templatesService: TemplatesService,
     private readonly startHandler: StartHandler,
@@ -172,7 +174,12 @@ export class PostActionsHandler {
    * View post: p:view:<postId>
    */
   async handleViewPost(ctx: BotContext, postId: string): Promise<void> {
+    const user = ctx.authUser;
+    if (!user) return;
     await ctx.answerCallbackQuery();
+
+    // Clear any active wizard/editing session when returning to view
+    await this.redis.del(`wizard:session:${user.id}`);
 
     const post = (await this.postsService.getPostWithRelations(postId)) as PostWithRelations | null;
     if (!post || post.deletedAt !== null) {
@@ -227,10 +234,39 @@ export class PostActionsHandler {
 
     await ctx.answerCallbackQuery();
 
-    const post = await this.postsService.getPostWithRelations(postId);
+    const post = (await this.postsService.getPostWithRelations(postId)) as PostWithRelations | null;
     if (!post) return;
 
-    // Set wizard session in Redis
+    const kb = PostControlsKeyboardBuilder.buildMediaManageKeyboard(postId, expectedVersion);
+
+    await ctx.reply(
+      '🖼 <b>Управление медиа</b>\n\n' +
+        `Прикреплено файлов: ${post.media?.length || 0}\n\n` +
+        'Выберите действие:',
+      {
+        parse_mode: 'HTML',
+        reply_markup: kb,
+      },
+    );
+  }
+
+  /**
+   * Add media: p:madd:<postId>:<version>
+   */
+  async handleAddMedia(
+    ctx: BotContext,
+    postId: string,
+    expectedVersion: number,
+  ): Promise<void> {
+    const user = ctx.authUser;
+    if (!user) return;
+
+    await ctx.answerCallbackQuery();
+
+    const post = (await this.postsService.getPostWithRelations(postId)) as PostWithRelations | null;
+    if (!post) return;
+
+    // Set wizard session in Redis for MEDIA_UPLOAD
     await this.redis.set(
       `wizard:session:${user.id}`,
       JSON.stringify({
@@ -244,18 +280,41 @@ export class PostActionsHandler {
     );
 
     const kb = new InlineKeyboard()
-      .text('✅ Завершить и просмотреть', `p:view:${postId}`)
+      .text('✅ Готово', `wiz:done_media`)
       .row()
-      .text('🔙 Назад', `p:view:${postId}`);
+      .text('🔙 Отмена', `p:view:${postId}`);
 
     await ctx.reply(
-      '🖼 <b>Управление медиафайлами</b>\n\n' +
-        'Отправьте фото, видео, анимацию или документ для прикрепления к публикации:',
-      {
-        parse_mode: 'HTML',
-        reply_markup: kb,
-      },
+      'Отправьте фото, видео или документы для добавления к посту:',
+      { parse_mode: 'HTML', reply_markup: kb },
     );
+  }
+
+  /**
+   * Clear media: p:mclr:<postId>:<version>
+   */
+  async handleClearMedia(
+    ctx: BotContext,
+    postId: string,
+    expectedVersion: number,
+  ): Promise<void> {
+    const user = ctx.authUser;
+    if (!user) return;
+
+    await ctx.answerCallbackQuery({ text: 'Медиа очищены' });
+
+    await this.mediaService.clearMedia(postId, expectedVersion, user.id);
+
+    const post = (await this.postsService.getPostWithRelations(postId)) as PostWithRelations | null;
+    if (post && ctx.chat) {
+      await ctx.reply('🗑 Все прикрепленные медиафайлы удалены.', { parse_mode: 'HTML' });
+      await this.previewService.sendPostPreview(ctx.api, ctx.chat.id, post, {
+        isSuperAdmin: ctx.isSuperAdmin,
+        canApprove: ctx.canChannel(ChannelPermission.APPROVE_POST, post.channelId),
+        canPublish: ctx.canChannel(ChannelPermission.PUBLISH_POST, post.channelId),
+        isAuthor: true,
+      });
+    }
   }
 
   /**

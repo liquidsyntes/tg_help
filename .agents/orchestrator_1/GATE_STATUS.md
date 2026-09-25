@@ -120,6 +120,19 @@ Gate Result: **FAIL (m5_auditor_2 INTEGRITY VIOLATION — BINARY VETO)**
 
 Gate Result: **PASS**
 
+---
+
+## Gate — Milestone 6 (E2E Acceptance & Adversarial Hardening) — Final Sign-Off
+| Agent | Role | Verdict | Source | Notes |
+|-------|------|---------|--------|-------|
+| m6_challenger_1 | teamwork_preview_challenger | APPROVE | handoff.md | 22/22 domain adversarial tests pass: partial resume without duplicates, 50-client idempotency collisions, unrecoverable error backoff, OCC atomic integrity |
+| m6_challenger_2 | teamwork_preview_challenger | APPROVE | handoff.md | 35/35 transport adversarial tests pass: complex HTML splitting, media burst debouncing, draft recovery, Kyiv DST transitions. Discovered OCC bypass in submitEditedField |
+| m6_worker_1 | teamwork_preview_worker | DONE | handoff.md | Fixed OCC version check in DraftManagerService line 207 (session.expectedVersion ?? post.version), updated test 3.6.2, 559 unit + 34 E2E pass |
+| m6_reviewer_2 | teamwork_preview_reviewer | APPROVE | handoff.md | Verified OCC fix, zero any, zero as any, 559 unit + 34 E2E pass, clean build & tsc |
+| m6_auditor_2 | teamwork_preview_auditor | CLEAN | handoff.md | Full repository forensic audit: 0 as any in src/, 0 code any in src/, 0 repository in handlers, zero tautologies, authentic domain & transport, 559 unit + 34 E2E pass |
+
+Gate Result: **PASS**
+
 
 
 

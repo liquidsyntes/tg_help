@@ -82,10 +82,18 @@ export class PostWizardService {
     await this.clearSession(actorId);
   }
 
+  async startCopyWizard(actorId: string): Promise<void> {
+    await this.saveSession(actorId, { step: 'COPY_WAIT' });
+  }
+
   /**
    * Step 1: Channel selection or auto-skip.
    */
   async startWizard(actorId: string): Promise<WizardPromptResult> {
+    const session = await this.getSession(actorId);
+    const copiedText = session?.copiedText;
+    const copiedEntities = session?.copiedEntities;
+
     const { singleChannel, channels, mustChoose } =
       await this.channelsService.autoSkipSingleChannel(actorId);
 
@@ -101,6 +109,8 @@ export class PostWizardService {
       await this.saveSession(actorId, {
         channelId: singleChannel.id,
         step: 'TEMPLATE_SELECT',
+        copiedText,
+        copiedEntities,
       });
 
       const templates = await this.templatesService.getActiveTemplates();
@@ -116,6 +126,8 @@ export class PostWizardService {
     // Multiple channels: prompt selection
     await this.saveSession(actorId, {
       step: 'CHANNEL_SELECT',
+      copiedText,
+      copiedEntities,
     });
 
     return {
@@ -129,9 +141,12 @@ export class PostWizardService {
    * Channel chosen by author.
    */
   async selectChannel(actorId: string, channelId: string): Promise<WizardPromptResult> {
+    const session = await this.getSession(actorId);
     await this.saveSession(actorId, {
       channelId,
       step: 'TEMPLATE_SELECT',
+      copiedText: session?.copiedText,
+      copiedEntities: session?.copiedEntities,
     });
 
     const templates = await this.templatesService.getActiveTemplates();
@@ -210,7 +225,26 @@ export class PostWizardService {
       step: 'FIELD_INPUT',
       fieldIndex: 0,
       expectedVersion: post.version,
+      copiedText: session?.copiedText,
+      copiedEntities: session?.copiedEntities,
     });
+
+    if (session?.copiedText) {
+      const text = session.copiedText;
+      const entities = session.copiedEntities || [];
+      
+      // Clear the copied data so it doesn't leak into next fields
+      await this.saveSession(actorId, {
+        postId: post.id,
+        channelId,
+        templateId,
+        step: 'FIELD_INPUT',
+        fieldIndex: 0,
+        expectedVersion: post.version,
+      });
+
+      return this.processFieldInput(actorId, text, entities);
+    }
 
     return this.renderFieldPrompt(fields[0]!, 0, fields.length);
   }

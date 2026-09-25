@@ -5,6 +5,7 @@
  */
 
 import { Injectable, Optional } from '@nestjs/common';
+import { InlineKeyboard } from 'grammy';
 import { BotContext } from '../interfaces/bot-context.interface';
 import { PostWizardService } from '../services/post-wizard.service';
 import { TelegramPreviewService } from '../services/telegram-preview.service';
@@ -47,6 +48,71 @@ export class PostWizardHandler {
     }
 
     await ctx.reply(res.text, { parse_mode: 'HTML' });
+  }
+
+  /**
+   * Starts copy post wizard ('📑 Скопировать пост')
+   */
+  async handleStartCopyWizard(ctx: BotContext): Promise<void> {
+    const user = ctx.authUser;
+    if (!user) return;
+
+    await this.wizardService.startCopyWizard(user.id);
+    const kb = new InlineKeyboard().text('🔙 Отмена', `wiz:cancel`);
+
+    await ctx.reply(
+      '📑 <b>Копирование поста</b>\n\n' +
+        'Пожалуйста, <b>перешлите</b> мне сообщение из любого канала или чата, ' +
+        'которое вы хотите скопировать.',
+      { parse_mode: 'HTML', reply_markup: kb },
+    );
+  }
+
+  async handleCopyMessage(ctx: BotContext, step: string): Promise<boolean> {
+    const user = ctx.authUser;
+    if (!user || !ctx.message) return false;
+
+    const text = ctx.message.text || ctx.message.caption || '';
+    const entities = ctx.message.entities || ctx.message.caption_entities || [];
+    
+    // We can also extract media here if we wanted to auto-copy media, 
+    // but for MVP we will just save the text to auto-fill the first rich_text field.
+    
+    await this.wizardService.saveSession(user.id, {
+      step: 'CHANNEL_SELECT', // Just a placeholder, startWizard will overwrite
+      copiedText: text,
+      copiedEntities: entities,
+    });
+
+    const res = await this.wizardService.startWizard(user.id);
+
+    if (res.type === 'CHANNEL_SELECT' && res.channels) {
+      await ctx.reply(res.text, {
+        parse_mode: 'HTML',
+        reply_markup: WizardKeyboardBuilder.buildChannelSelection(res.channels),
+      });
+      return true;
+    }
+
+    if (res.type === 'TEMPLATE_SELECT' && res.templates) {
+      await ctx.reply(res.text, {
+        parse_mode: 'HTML',
+        reply_markup: WizardKeyboardBuilder.buildTemplateSelection(res.templates),
+      });
+      return true;
+    }
+
+    // If it skipped straight to FIELD_PROMPT (which shouldn't happen immediately without selectTemplate, but just in case)
+    if (res.type === 'FIELD_PROMPT' && res.field) {
+      await ctx.reply(res.text, {
+        parse_mode: 'HTML',
+        reply_markup: WizardKeyboardBuilder.buildFieldInputControls(res.field),
+      });
+      return true;
+    }
+
+    await ctx.reply(res.text, { parse_mode: 'HTML' });
+    return true;
   }
 
   /**
@@ -194,7 +260,13 @@ export class PostWizardHandler {
     if (!user || !ctx.message?.text) return false;
 
     const session = await this.wizardService.getSession(user.id);
-    if (!session || session.step !== 'FIELD_INPUT') {
+    if (!session) return false;
+
+    if (session.step === 'COPY_WAIT') {
+      return this.handleCopyMessage(ctx, session.step);
+    }
+
+    if (session.step !== 'FIELD_INPUT') {
       return false; // Not handled by wizard
     }
 
@@ -243,7 +315,13 @@ export class PostWizardHandler {
     if (!user || !ctx.message) return false;
 
     const session = await this.wizardService.getSession(user.id);
-    if (!session || (session.step !== 'MEDIA_UPLOAD' && session.step !== 'FIELD_INPUT')) {
+    if (!session) return false;
+
+    if (session.step === 'COPY_WAIT') {
+      return this.handleCopyMessage(ctx, session.step);
+    }
+
+    if (session.step !== 'MEDIA_UPLOAD' && session.step !== 'FIELD_INPUT') {
       return false;
     }
 

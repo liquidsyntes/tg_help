@@ -13,7 +13,7 @@ export function buildMainMenuKeyboard(user: AuthUser): Keyboard {
     isSuperAdmin || user.channelMemberships.some((m) => m.role === ChannelRole.EDITOR);
 
   const keyboard = new Keyboard();
-  keyboard.text('➕ Создать пост');
+  keyboard.text('➕ Создать пост').text('📑 Скопировать пост').row();
 
   if (isEditorOrAdmin) {
     keyboard.text('📝 Материалы').row();

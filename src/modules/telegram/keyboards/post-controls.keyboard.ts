@@ -137,6 +137,17 @@ export class PostControlsKeyboardBuilder {
   }
 
   /**
+   * Media management keyboard.
+   */
+  static buildMediaManageKeyboard(postId: string, version: number): InlineKeyboard {
+    return new InlineKeyboard()
+      .text('➕ Добавить медиа', CallbackCodec.encode(PostCallbackAction.ADD_MEDIA, postId, version))
+      .text('🗑 Очистить медиа', CallbackCodec.encode(PostCallbackAction.CLEAR_MEDIA, postId, version))
+      .row()
+      .text('🔙 Назад', CallbackCodec.encodeView(postId));
+  }
+
+  /**
    * Scheduling Presets Keyboard
    */
   static buildSchedulePresetsKeyboard(postId: string, version: number): InlineKeyboard {

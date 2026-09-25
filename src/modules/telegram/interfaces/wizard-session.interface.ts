@@ -9,7 +9,8 @@ export type WizardStep =
   | 'TEMPLATE_SELECT'
   | 'FIELD_INPUT'
   | 'MEDIA_UPLOAD'
-  | 'EDIT_FIELD';
+  | 'EDIT_FIELD'
+  | 'COPY_WAIT';
 
 export interface WizardSessionData {
   postId?: string;
@@ -20,6 +21,8 @@ export interface WizardSessionData {
   fieldKey?: string;
   expectedVersion?: number;
   mode?: 'CREATE' | 'EDIT';
+  copiedText?: string;
+  copiedEntities?: any[];
 }
 
 export interface ReviewSessionData {

@@ -178,8 +178,8 @@ export class DraftManagerHandler {
       ctx.message.entities,
     );
 
-    if (!res.success && res.text.includes('Сессия редактирования истекла')) {
-      return false; // Not in edit field mode
+    if (!res.success && (res.text.includes('Сессия редактирования истекла') || res.text.includes('Неверный шаг редактирования'))) {
+      return false; // Not in edit field mode, let wizard handler process it
     }
 
     if (!res.success) {

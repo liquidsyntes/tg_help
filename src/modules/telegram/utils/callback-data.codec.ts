@@ -11,6 +11,8 @@ export enum PostCallbackAction {
   DELETE_DRAFT_CONFIRM = 'p:del_ok',
   EDIT_POST = 'p:edt',
   MANAGE_MEDIA = 'p:med',
+  ADD_MEDIA = 'p:madd',
+  CLEAR_MEDIA = 'p:mclr',
   VIEW_POST = 'p:view',
 
   // Reviewer actions

@@ -26,9 +26,9 @@ Lead end-to-end implementation of Telegram Content Publisher Bot MVP per R1, R2,
   4. Domain Workflows & State Machine (OCC, Audit, Transitions) [done]
   5. Publishing Engine & BullMQ Idempotency [done]
   6. Telegram Transport & Wizard UI [done]
-  7. E2E Integration & Adversarial Verification [in-progress]
-- **Current phase**: 2
-- **Current focus**: Milestone 6 — E2E Acceptance & Adversarial Hardening
+  7. E2E Integration & Adversarial Verification [done]
+- **Current phase**: 4 (Final Reporting)
+- **Current focus**: Submitting Final Completion Report to Sentinel
 
 ## 🔒 Key Constraints
 - NEVER write, modify, or create source code files directly.
@@ -122,18 +122,20 @@ Lead end-to-end implementation of Telegram Content Publisher Bot MVP per R1, R2,
 | m6_challenger_1 | teamwork_preview_challenger | Tier 5 Challenger 1 (Domain & Publishing) | completed | aa7832f0-4396-48cb-aa63-2f7fe3fa6e9f |
 | m6_challenger_2 | teamwork_preview_challenger | Tier 5 Challenger 2 (Transport & Rendering) | completed | 617cbf1d-c447-46c3-b1bd-e2dda7eb2ec3 |
 | m6_worker_1 | teamwork_preview_worker | M6 Remediation Worker (OCC in DraftManager) | completed | b5f5957c-0dae-4e61-8fe3-d995a4ce9f85 |
-| m6_reviewer_1 | teamwork_preview_reviewer | M6 Reviewer (OCC Fix & Transport Track) | in-progress | 0d7a4157-69be-4584-9021-39fbdee3bb2e |
-| m6_auditor_1 | teamwork_preview_auditor | Final Forensic Integrity Auditor | in-progress | 5932a16d-1655-4e2e-acb3-1cd3f0f8a4d7 |
+| m6_reviewer_1 | teamwork_preview_reviewer | M6 Reviewer (OCC Fix & Transport Track) | failed | 0d7a4157-69be-4584-9021-39fbdee3bb2e |
+| m6_auditor_1 | teamwork_preview_auditor | Final Forensic Integrity Auditor | failed | 5932a16d-1655-4e2e-acb3-1cd3f0f8a4d7 |
+| m6_reviewer_2 | teamwork_preview_reviewer | M6 Reviewer (OCC Fix & Transport Track) | completed | fe578ce9-3b9f-431c-a58d-25e4b11649dd |
+| m6_auditor_2 | teamwork_preview_auditor | Final Forensic Integrity Auditor | completed | 60a2b3bb-5231-42db-bde8-50eaa35c0f87 |
 
 ## Succession Status
 - Succession required: no
-- Spawn count: 76 / 16
-- Pending subagents: m6_reviewer_1, m6_auditor_1
+- Spawn count: 78 / 16
+- Pending subagents: none
 - Predecessor: none
 - Successor: not yet spawned
 
 ## Active Timers
-- Heartbeat cron: 6f35b072-3fac-43df-87fc-95e48993acc2/task-1100
+- Heartbeat cron: 6f35b072-3fac-43df-87fc-95e48993acc2/task-2128
 - Safety timer: covered by heartbeat cron
 - On succession: kill all timers before spawning successor
 - On context truncation: run `manage_task(Action="list")` — re-create if missing
