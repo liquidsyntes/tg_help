@@ -226,6 +226,25 @@ export class TelegramRenderer {
       replacements['cta'] = '';
     }
 
+    // Author variables
+    const author = (post as any).author;
+    if (author) {
+      const authorName = [author.firstName, author.lastName].filter(Boolean).join(' ') || author.username || `ID ${author.telegramId}`;
+      replacements['author_name'] = this.sanitizer.escapeText(authorName);
+      
+      if (author.username) {
+        replacements['author_mention'] = `@${this.sanitizer.escapeText(author.username)}`;
+        replacements['author_link'] = `https://t.me/${author.username}`;
+      } else {
+        replacements['author_mention'] = `<a href="tg://user?id=${author.telegramId}">${this.sanitizer.escapeText(authorName)}</a>`;
+        replacements['author_link'] = `tg://user?id=${author.telegramId}`;
+      }
+    } else {
+      replacements['author_name'] = '';
+      replacements['author_mention'] = '';
+      replacements['author_link'] = '';
+    }
+
     // Interpolate layout: replace {{key}} tokens
     let text = layout.replace(
       /\{\{([a-zA-Z0-9_]+)\}\}/g,

@@ -20,7 +20,7 @@ export function buildMainMenuKeyboard(user: AuthUser): Keyboard {
     keyboard.text('✅ На согласовании').text('📅 Контент-план').row();
     keyboard.text('📚 Публикации');
     if (isSuperAdmin) {
-      keyboard.text('👥 Пользователи').row();
+      keyboard.text('👥 Пользователи').text('📄 Шаблоны').row();
       keyboard.text('⚙️ Настройки').text('❓ Помощь').row();
     } else {
       keyboard.text('❓ Помощь').row();

@@ -29,6 +29,7 @@ import { TelegramPreviewService } from './services/telegram-preview.service';
 import { PostWizardService } from './services/post-wizard.service';
 import { DraftManagerService } from './services/draft-manager.service';
 import { ReviewQueueService } from './services/review-queue.service';
+import { TemplateManagerService } from './services/template-manager.service';
 
 import { StartHandler } from './handlers/start.handler';
 import { HelpHandler } from './handlers/help.handler';
@@ -36,6 +37,7 @@ import { PostWizardHandler } from './handlers/post-wizard.handler';
 import { DraftManagerHandler } from './handlers/draft-manager.handler';
 import { ReviewQueueHandler } from './handlers/review-queue.handler';
 import { PostActionsHandler } from './handlers/post-actions.handler';
+import { TemplateManagerHandler } from './handlers/template-manager.handler';
 
 import { TelegramBotService } from './telegram-bot.service';
 
@@ -65,12 +67,14 @@ import { TelegramBotService } from './telegram-bot.service';
     PostWizardService,
     DraftManagerService,
     ReviewQueueService,
+    TemplateManagerService,
     StartHandler,
     HelpHandler,
     PostWizardHandler,
     DraftManagerHandler,
     ReviewQueueHandler,
     PostActionsHandler,
+    TemplateManagerHandler,
     TelegramBotService,
   ],
   exports: [

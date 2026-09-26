@@ -22,6 +22,8 @@ import { DraftManagerHandler } from './handlers/draft-manager.handler';
 import { ReviewQueueHandler } from './handlers/review-queue.handler';
 import { PostActionsHandler } from './handlers/post-actions.handler';
 
+import { TemplateManagerHandler } from './handlers/template-manager.handler';
+
 @Injectable()
 export class TelegramBotService implements OnModuleInit, OnApplicationShutdown {
   private bot!: Bot<BotContext>;
@@ -38,6 +40,7 @@ export class TelegramBotService implements OnModuleInit, OnApplicationShutdown {
     private readonly draftManagerHandler: DraftManagerHandler,
     private readonly reviewQueueHandler: ReviewQueueHandler,
     private readonly postActionsHandler: PostActionsHandler,
+    private readonly templateManagerHandler: TemplateManagerHandler,
     @Optional() private readonly logger?: StructuredLoggerService,
   ) {
     this.bot = new Bot<BotContext>(this.config.botToken);
@@ -98,6 +101,8 @@ export class TelegramBotService implements OnModuleInit, OnApplicationShutdown {
       this.reviewQueueHandler.handleOpenReviewQueue(ctx),
     );
 
+    this.bot.hears('📄 Шаблоны', async (ctx) => this.templateManagerHandler.handleListTemplates(ctx));
+
     // 2. Callback Queries
     this.bot.on('callback_query:data', async (ctx) => {
       const data = ctx.callbackQuery.data;
@@ -120,6 +125,70 @@ export class TelegramBotService implements OnModuleInit, OnApplicationShutdown {
       }
       if (data === 'wiz:cancel') {
         return this.wizardHandler.handleCancelWizard(ctx);
+      }
+
+      // Template manager callbacks
+      if (data === 'tpl:list') {
+        return this.templateManagerHandler.handleListTemplates(ctx);
+      }
+      if (data.startsWith('tpl:view:')) {
+        return this.templateManagerHandler.handleViewTemplate(ctx, data.split(':')[2]!);
+      }
+      if (data.startsWith('tpl:rename:')) {
+        return this.templateManagerHandler.handlePromptRename(ctx, data.split(':')[2]!);
+      }
+      if (data.startsWith('tpl:desc:')) {
+        return this.templateManagerHandler.handlePromptDesc(ctx, data.split(':')[2]!);
+      }
+      if (data.startsWith('tpl:layout:')) {
+        return this.templateManagerHandler.handlePromptLayout(ctx, data.split(':')[2]!);
+      }
+      if (data.startsWith('tpl:prev:')) {
+        return this.templateManagerHandler.handlePreview(ctx, data.split(':')[2]!);
+      }
+      if (data.startsWith('tpl:clone:')) {
+        return this.templateManagerHandler.handlePromptClone(ctx, data.split(':')[2]!);
+      }
+      if (data.startsWith('tpl:del:')) {
+        return this.templateManagerHandler.handleDelete(ctx, data.split(':')[2]!);
+      }
+      if (data.startsWith('tpl:fields:')) {
+        return this.templateManagerHandler.handleListFields(ctx, data.split(':')[2]!);
+      }
+      if (data.startsWith('tpl:f_view:')) {
+        const parts = data.split(':');
+        return this.templateManagerHandler.handleViewField(ctx, parts[2]!, parseInt(parts[3]!, 10));
+      }
+      if (data.startsWith('tpl:f_ren:')) {
+        const parts = data.split(':');
+        return this.templateManagerHandler.handlePromptFieldRename(ctx, parts[2]!, parseInt(parts[3]!, 10));
+      }
+      if (data.startsWith('tpl:f_hint:')) {
+        const parts = data.split(':');
+        return this.templateManagerHandler.handlePromptFieldHint(ctx, parts[2]!, parseInt(parts[3]!, 10));
+      }
+      if (data.startsWith('tpl:f_max:')) {
+        const parts = data.split(':');
+        return this.templateManagerHandler.handlePromptFieldMax(ctx, parts[2]!, parseInt(parts[3]!, 10));
+      }
+      if (data.startsWith('tpl:f_min:')) {
+        const parts = data.split(':');
+        return this.templateManagerHandler.handlePromptFieldMin(ctx, parts[2]!, parseInt(parts[3]!, 10));
+      }
+      if (data.startsWith('tpl:f_type:')) {
+        const parts = data.split(':');
+        return this.templateManagerHandler.handleSetFieldType(ctx, parts[2]!, parseInt(parts[3]!, 10), parts[4]!);
+      }
+      if (data.startsWith('tpl:f_req:')) {
+        const parts = data.split(':');
+        return this.templateManagerHandler.handleToggleFieldReq(ctx, parts[2]!, parseInt(parts[3]!, 10));
+      }
+      if (data.startsWith('tpl:f_del:')) {
+        const parts = data.split(':');
+        return this.templateManagerHandler.handleDeleteField(ctx, parts[2]!, parseInt(parts[3]!, 10));
+      }
+      if (data.startsWith('tpl:f_add:')) {
+        return this.templateManagerHandler.handlePromptAddField(ctx, data.split(':')[2]!);
       }
 
       // Draft manager callbacks
@@ -290,6 +359,9 @@ export class TelegramBotService implements OnModuleInit, OnApplicationShutdown {
     // 4. Fallback Text Messages
     this.bot.on('message:text', async (ctx) => {
       // Try conversational handlers in priority order
+      const handledByTemplate = await this.templateManagerHandler.handleTextInput(ctx);
+      if (handledByTemplate) return;
+
       const handledByReview = await this.reviewQueueHandler.handleTextInput(ctx);
       if (handledByReview) return;
 
